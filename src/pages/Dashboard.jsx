@@ -1,3 +1,4 @@
+import { CheckCircle, ClipboardList, BookOpen, Calendar } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import AttendanceChart from '../components/AttendanceChart';
 import RecentAssignments from '../components/RecentAssignments';
@@ -9,11 +10,11 @@ function Dashboard() {
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Row 1: 4 Stats Cards */}
-      <div style={{ display: 'flex', gap: 16 }}>
-        <StatsCard icon="✅" title="Attendance"  value="85%" sub="Good"       subColor="#16a34a" trend="📈" />
-        <StatsCard icon="📋" title="Assignments" value="05"  sub="2 Pending"  subColor="#f59e0b" />
-        <StatsCard icon="📝" title="Quizzes"     value="03"  sub="1 Upcoming" subColor="#555" />
-        <StatsCard icon="🗓️" title="Leaves"      value="02"  sub="This Month" subColor="#555" />
+      <div className="grid-4">
+        <StatsCard icon={CheckCircle}  title="Attendance"  value="85%" sub="Good"       subColor="#16a34a" trend="↑" />
+        <StatsCard icon={ClipboardList} title="Assignments" value="05"  sub="2 Pending"  subColor="#f59e0b" />
+        <StatsCard icon={BookOpen}     title="Quizzes"     value="03"  sub="1 Upcoming" subColor="#555" />
+        <StatsCard icon={Calendar}     title="Leaves"      value="02"  sub="This Month" subColor="#555" />
       </div>
 
       {/* Row 2: Attendance Chart + Recent Assignments */}
