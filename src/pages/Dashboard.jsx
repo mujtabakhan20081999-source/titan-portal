@@ -4,9 +4,12 @@ import AttendanceChart from '../components/AttendanceChart';
 import RecentAssignments from '../components/RecentAssignments';
 import UpcomingQuizzes from '../components/UpcomingQuizzes';
 import CourseProgress from '../components/CourseProgress';
+import TopBar from '../components/TopBar';
 
 function Dashboard() {
   return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <TopBar />
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Row 1: 4 Stats Cards */}
@@ -37,6 +40,7 @@ function Dashboard() {
         </div>
       </div>
 
+    </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logoTitan from '../assets/TITAN LOGO without BG.png';
 import {
   FiMenu,
@@ -14,19 +15,22 @@ import {
 } from 'react-icons/fi';
 
 const menuItems = [
-  { icon: <FiHome />, label: 'Dashboard' },
-  { icon: <FiClipboard />, label: 'Assignments' },
-  { icon: <FiFileText />, label: 'Quizzes' },
-  { icon: <FiBarChart2 />, label: 'Attendance' },
-  { icon: <FiCalendar />, label: 'Leaves' },
-  { icon: <FiBookOpen />, label: 'My Courses' },
-  { icon: <FiUser />, label: 'Profile' },
-  { icon: <FiSettings />, label: 'Settings' },
+  { icon: <FiHome />,      label: 'Dashboard',   path: '/dashboard' },
+  { icon: <FiClipboard />, label: 'Assignments',  path: '/assignments' },
+  { icon: <FiFileText />,  label: 'Quizzes',      path: '/quizzes' },
+  { icon: <FiBarChart2 />, label: 'Attendance',   path: '/attendance' },
+  { icon: <FiCalendar />,  label: 'Leaves',       path: '/leaves' },
+  { icon: <FiBookOpen />,  label: 'My Courses',   path: '/courses' },
+  { icon: <FiUser />,      label: 'Profile',      path: '/profile' },
+  { icon: <FiSettings />,  label: 'Settings',     path: '/settings' },
 ];
 
-function Sidebar() {
+function Sidebar({ onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [active, setActive] = useState('Dashboard');
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  const active = menuItems.find((item) => location.pathname === item.path)?.label ?? 'Dashboard';
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -45,7 +49,7 @@ function Sidebar() {
         <button
           type="button"
           className="sidebar-toggle"
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={() => setCollapsed((v) => !v)}
           aria-label="Toggle sidebar"
         >
           <FiMenu size={20} />
@@ -59,7 +63,7 @@ function Sidebar() {
             type="button"
             title={item.label}
             className={`sidebar-item ${active === item.label ? 'active' : ''}`}
-            onClick={() => setActive(item.label)}
+            onClick={() => navigate(item.path)}
           >
             <span className="sidebar-item-icon">{item.icon}</span>
             {!collapsed && <span>{item.label}</span>}
@@ -74,9 +78,13 @@ function Sidebar() {
         </div>
       )}
 
-      <button className="sidebar-logout" type="button">
+      <button
+        className="sidebar-logout"
+        type="button"
+        onClick={onLogout}
+      >
         <FiLogOut size={18} />
-        <span>Logout</span>
+        {!collapsed && <span>Logout</span>}
       </button>
     </aside>
   );
