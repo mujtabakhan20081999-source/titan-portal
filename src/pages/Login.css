@@ -545,6 +545,71 @@
   box-shadow: 0 4px 14px rgba(10, 61, 145, 0.10);
 }
 
+/* ── Tab content split-reveal animation ── */
+.form-tab-content {
+  animation: tabSplitReveal 0.48s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes tabSplitReveal {
+  from {
+    clip-path: inset(50% 0 50% 0);
+    opacity: 0;
+  }
+  to {
+    clip-path: inset(0% 0 0% 0);
+    opacity: 1;
+  }
+}
+
+/* ── Required star ── */
+.login-required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* ── Date input ── */
+.login-input-date {
+  color-scheme: light;
+}
+.login-input-date::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* ── Submit button variant ── */
+.login-btn-submit {
+  letter-spacing: 1.5px;
+  font-size: 14px;
+}
+
+/* ── Switch student / teacher link row ── */
+.login-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.login-switch-link {
+  background: none;
+  border: none;
+  color: #0A3D91;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.login-switch-link:hover {
+  color: #F3C623;
+  text-decoration: underline;
+}
+
 /* ════════════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════════════ */

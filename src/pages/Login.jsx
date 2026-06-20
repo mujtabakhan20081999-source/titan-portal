@@ -403,109 +403,193 @@ function BluePanel({ isTeacher }) {
    FORM PANEL (shared by both views)
 ══════════════════════════════════════════════════ */
 function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
-  const [showPass, setShowPass] = useState(false);
+  const [activeTab,    setActiveTab]    = useState('login');
+  const [showPass,     setShowPass]     = useState(false);
+  const [showCrPass,   setShowCrPass]   = useState(false);
+  const [createForm,   setCreateForm]   = useState({ cnic: '', dob: '', password: '' });
 
-  const idLabel       = isTeacher ? 'Employee / Teacher ID'          : 'CNIC / Student ID';
+  const idLabel       = isTeacher ? 'Employee / Teacher ID'             : 'CNIC / Student ID';
   const idPlaceholder = isTeacher ? 'Enter your Employee or Teacher ID' : 'Enter your CNIC or Student ID';
-  const title         = isTeacher ? 'Teacher Login'                   : 'Student Login';
-  const switchLabel   = isTeacher ? 'Student Login'                   : 'Teacher Login';
+  const loginTitle    = isTeacher ? 'Teacher Login'                     : 'Student Login';
+  const switchLabel   = isTeacher ? 'Student Login'                     : 'Teacher Login';
 
-  const handleSubmit = (e) => {
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (onLogin) onLogin();
+  };
+
+  const handleCreatePassword = (e) => {
     e.preventDefault();
     if (onLogin) onLogin();
   };
 
   return (
     <div className="login-right">
-      {/* Tabs */}
+      {/* ── Tabs: Login | Create Password ── */}
       <div className="login-tabs">
         <button
-          className={`login-tab${!isTeacher ? ' active' : ''}`}
-          onClick={() => !isTeacher ? null : onSwitch()}
+          className={`login-tab${activeTab === 'login' ? ' active' : ''}`}
+          onClick={() => setActiveTab('login')}
         >
-          Student Login
+          Login
         </button>
         <button
-          className={`login-tab${isTeacher ? ' active' : ''}`}
-          onClick={() => isTeacher ? null : onSwitch()}
+          className={`login-tab${activeTab === 'create-password' ? ' active' : ''}`}
+          onClick={() => setActiveTab('create-password')}
         >
-          Teacher Login
+          Create Password
         </button>
       </div>
 
-      {/* Form */}
       <div className="login-form-container">
-        <h3 className="login-form-title">{title}</h3>
-        <p className="login-form-sub">Enter your credentials to access your account</p>
 
-        <form onSubmit={handleSubmit}>
-          {/* ID Field */}
-          <div className="login-field-group">
-            <label className="login-label">{idLabel}</label>
-            <div className="login-input-wrap">
-              <span className="login-input-icon"><PersonIcon /></span>
-              <input
-                type="text"
-                className="login-input"
-                placeholder={idPlaceholder}
-                value={form.id}
-                onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
-                autoComplete="username"
-              />
-            </div>
+        {/* ════ LOGIN TAB ════ */}
+        {activeTab === 'login' && (
+          <div key="login" className="form-tab-content">
+            <h3 className="login-form-title">{loginTitle}</h3>
+            <p className="login-form-sub">Enter your credentials to access your account</p>
+
+            <form onSubmit={handleLogin}>
+              <div className="login-field-group">
+                <label className="login-label">{idLabel}</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><PersonIcon /></span>
+                  <input
+                    type="text"
+                    className="login-input"
+                    placeholder={idPlaceholder}
+                    value={form.id}
+                    onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+                    autoComplete="username"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field-group">
+                <label className="login-label">Password</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><LockIcon /></span>
+                  <input
+                    type={showPass ? 'text' : 'password'}
+                    className="login-input"
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    autoComplete="current-password"
+                  />
+                  <button type="button" className="login-eye-btn"
+                    onClick={() => setShowPass(p => !p)}
+                    aria-label={showPass ? 'Hide password' : 'Show password'}>
+                    {showPass ? <EyeClosedIcon /> : <EyeOpenIcon />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="login-row-between">
+                <label className="login-remember">
+                  <input
+                    type="checkbox"
+                    checked={form.remember}
+                    onChange={e => setForm(f => ({ ...f, remember: e.target.checked }))}
+                    className="login-checkbox"
+                  />
+                  <span>Remember Me</span>
+                </label>
+                <a href="#" className="login-forgot">Forgot Password?</a>
+              </div>
+
+              <button type="submit" className="login-btn-primary">Login</button>
+
+              {/* Switch student ↔ teacher */}
+              <div className="login-switch-row">
+                <span>{isTeacher ? 'Are you a Student?' : 'Are you a Teacher?'}</span>
+                <button type="button" className="login-switch-link" onClick={onSwitch}>
+                  {switchLabel}
+                </button>
+              </div>
+            </form>
           </div>
+        )}
 
-          {/* Password Field */}
-          <div className="login-field-group">
-            <label className="login-label">Password</label>
-            <div className="login-input-wrap">
-              <span className="login-input-icon"><LockIcon /></span>
-              <input
-                type={showPass ? 'text' : 'password'}
-                className="login-input"
-                placeholder="Enter your password"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                autoComplete="current-password"
-              />
-              <button type="button" className="login-eye-btn"
-                onClick={() => setShowPass(p => !p)}
-                aria-label={showPass ? 'Hide password' : 'Show password'}>
-                {showPass ? <EyeClosedIcon /> : <EyeOpenIcon />}
+        {/* ════ CREATE PASSWORD TAB ════ */}
+        {activeTab === 'create-password' && (
+          <div key="create-password" className="form-tab-content">
+            <h3 className="login-form-title">Create a Password</h3>
+            <p className="login-form-sub">
+              Kindly provide the CNIC number and DOB used during SMIT course registration.
+            </p>
+
+            <form onSubmit={handleCreatePassword}>
+              {/* CNIC */}
+              <div className="login-field-group">
+                <label className="login-label">
+                  CNIC <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><PersonIcon /></span>
+                  <input
+                    type="text"
+                    className="login-input"
+                    placeholder={isTeacher ? 'Enter your CNIC' : 'Enter your CNIC'}
+                    value={createForm.cnic}
+                    onChange={e => setCreateForm(f => ({ ...f, cnic: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {/* DOB */}
+              <div className="login-field-group">
+                <label className="login-label">
+                  DOB <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <input
+                    type="date"
+                    className="login-input login-input-date"
+                    value={createForm.dob}
+                    onChange={e => setCreateForm(f => ({ ...f, dob: e.target.value }))}
+                    style={{ paddingLeft: 14 }}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="login-field-group">
+                <label className="login-label">
+                  Password <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><LockIcon /></span>
+                  <input
+                    type={showCrPass ? 'text' : 'password'}
+                    className="login-input"
+                    placeholder="Create a password"
+                    value={createForm.password}
+                    onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                  />
+                  <button type="button" className="login-eye-btn"
+                    onClick={() => setShowCrPass(p => !p)}
+                    aria-label={showCrPass ? 'Hide password' : 'Show password'}>
+                    {showCrPass ? <EyeClosedIcon /> : <EyeOpenIcon />}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="login-btn-primary login-btn-submit">
+                SUBMIT
               </button>
-            </div>
+
+              {/* Switch student ↔ teacher */}
+              <div className="login-switch-row">
+                <span>{isTeacher ? 'Are you a Student?' : 'Are you a Teacher?'}</span>
+                <button type="button" className="login-switch-link" onClick={onSwitch}>
+                  {switchLabel}
+                </button>
+              </div>
+            </form>
           </div>
+        )}
 
-          {/* Remember + Forgot */}
-          <div className="login-row-between">
-            <label className="login-remember">
-              <input
-                type="checkbox"
-                checked={form.remember}
-                onChange={e => setForm(f => ({ ...f, remember: e.target.checked }))}
-                className="login-checkbox"
-              />
-              <span>Remember Me</span>
-            </label>
-            <a href="#" className="login-forgot">Forgot Password?</a>
-          </div>
-
-          {/* Login */}
-          <button type="submit" className="login-btn-primary">Login</button>
-
-          {/* Divider */}
-          <div className="login-divider">
-            <span className="login-divider-line" />
-            <span className="login-divider-text">Or</span>
-            <span className="login-divider-line" />
-          </div>
-
-          {/* Switch button */}
-          <button type="button" className="login-btn-secondary" onClick={onSwitch}>
-            <TeacherUserIcon />
-            Login as {switchLabel}
-          </button>
-        </form>
       </div>
     </div>
   );
