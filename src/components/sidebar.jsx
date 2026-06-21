@@ -14,22 +14,31 @@ import {
   FiLogOut,
 } from 'react-icons/fi';
 
-const menuItems = [
-  { icon: <FiHome />,      label: 'Dashboard',   path: '/dashboard' },
-  { icon: <FiClipboard />, label: 'Assignments',  path: '/assignments' },
-  { icon: <FiFileText />,  label: 'Quizzes',      path: '/quizzes' },
-  { icon: <FiBarChart2 />, label: 'Attendance',   path: '/attendance' },
-  { icon: <FiCalendar />,  label: 'Leaves',       path: '/leaves' },
-  { icon: <FiBookOpen />,  label: 'My Courses',   path: '/courses' },
-  { icon: <FiUser />,      label: 'Profile',      path: '/profile' },
-  { icon: <FiSettings />,  label: 'Settings',     path: '/settings' },
+const studentMenuItems = [
+  { icon: <FiHome />,      label: 'Dashboard',  path: '/dashboard' },
+  { icon: <FiClipboard />, label: 'Assignments', path: '/assignments' },
+  { icon: <FiFileText />,  label: 'Quizzes',     path: '/quizzes' },
+  { icon: <FiBarChart2 />, label: 'Attendance',  path: '/attendance' },
+  { icon: <FiCalendar />,  label: 'Leaves',      path: '/leaves' },
+  { icon: <FiBookOpen />,  label: 'My Courses',  path: '/courses' },
+  { icon: <FiUser />,      label: 'Profile',     path: '/profile' },
+  { icon: <FiSettings />,  label: 'Settings',    path: '/settings' },
 ];
 
-function Sidebar({ onLogout }) {
+const teacherMenuItems = [
+  { icon: <FiHome />,      label: 'Dashboard',  path: '/dashboard' },
+  { icon: <FiCalendar />,  label: 'Calendar',   path: '/calendar' },
+  { icon: <FiBarChart2 />, label: 'Attendance', path: '/attendance' },
+  { icon: <FiUser />,      label: 'Profile',    path: '/profile' },
+  { icon: <FiSettings />,  label: 'Settings',   path: '/settings' },
+];
+
+function Sidebar({ onLogout, role = 'student' }) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate  = useNavigate();
   const location  = useLocation();
 
+  const menuItems = role === 'teacher' ? teacherMenuItems : studentMenuItems;
   const active = menuItems.find((item) => location.pathname === item.path)?.label ?? 'Dashboard';
 
   return (
@@ -71,10 +80,17 @@ function Sidebar({ onLogout }) {
         ))}
       </nav>
 
-      {!collapsed && (
+      {!collapsed && role === 'student' && (
         <div className="sidebar-cta card-padding">
           <strong>Performance Goal</strong>
           <p>Keep your attendance above 85% and track progress across courses.</p>
+        </div>
+      )}
+
+      {!collapsed && role === 'teacher' && (
+        <div className="sidebar-cta card-padding" style={{ marginTop: 'auto' }}>
+          <strong>Teaching Tip</strong>
+          <p>Upload assignments early so students have enough time to prepare.</p>
         </div>
       )}
 
@@ -82,6 +98,7 @@ function Sidebar({ onLogout }) {
         className="sidebar-logout"
         type="button"
         onClick={onLogout}
+        style={role === 'teacher' ? {} : { marginTop: 'auto' }}
       >
         <FiLogOut size={18} />
         {!collapsed && <span>Logout</span>}

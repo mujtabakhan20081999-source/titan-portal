@@ -3,17 +3,21 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Sidebar from './components/sidebar';
 import Dashboard from './pages/Dashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
 import Assignments from './pages/Assignments';
 
-function AppShell({ onLogout }) {
+function AppShell({ user, onLogout }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar onLogout={onLogout} />
+      <Sidebar onLogout={onLogout} role={user.role} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
-          <Route path="/dashboard"   element={<Dashboard />} />
+          <Route
+            path="/dashboard"
+            element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard />}
+          />
           <Route path="/assignments" element={<Assignments />} />
-          <Route path="*"            element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
     </div>
@@ -21,7 +25,11 @@ function AppShell({ onLogout }) {
 }
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+
+  const handleLogin = (isTeacher) => {
+    setUser({ role: isTeacher ? 'teacher' : 'student' });
+  };
 
   return (
     <BrowserRouter>
@@ -29,16 +37,16 @@ function App() {
         <Route
           path="/login"
           element={
-            loggedIn
+            user
               ? <Navigate to="/dashboard" replace />
-              : <Login onLogin={() => setLoggedIn(true)} />
+              : <Login onLogin={handleLogin} />
           }
         />
         <Route
           path="/*"
           element={
-            loggedIn
-              ? <AppShell onLogout={() => setLoggedIn(false)} />
+            user
+              ? <AppShell user={user} onLogout={() => setUser(null)} />
               : <Navigate to="/login" replace />
           }
         />

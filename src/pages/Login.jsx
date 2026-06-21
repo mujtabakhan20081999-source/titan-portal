@@ -618,7 +618,7 @@ function Login({ onLogin }) {
               form={studentForm}
               setForm={setStudentForm}
               onSwitch={() => setIsTeacher(true)}
-              onLogin={onLogin}
+              onLogin={() => onLogin(false)}
             />
           </div>
 
@@ -629,7 +629,7 @@ function Login({ onLogin }) {
               form={teacherForm}
               setForm={setTeacherForm}
               onSwitch={() => setIsTeacher(false)}
-              onLogin={onLogin}
+              onLogin={() => onLogin(true)}
             />
             <BluePanel isTeacher={true} />
           </div>

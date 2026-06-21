@@ -19,19 +19,31 @@ const notificationsData = [
   },
 ];
 
-function TopBar() {
+function TopBar({
+  userName = 'Mujtaba khan',
+  userRole = 'Student',
+  pageTitle = 'Student Management System',
+  pageSubtitle = 'Review academic performance, attendance, quizzes, and assignments in one place.',
+}) {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileHover, setProfileHover] = useState(false);
   const [notifications] = useState(notificationsData);
   const unreadCount = notifications.length;
+
+  const initials = userName
+    .split(' ')
+    .filter((w) => /^[A-Za-z]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
 
   return (
     <header className="topbar">
       <div className="topbar-inner">
         <div className="topbar-title">
           <span className="eyebrow">Dashboard</span>
-          <h2>Student Management System</h2>
-          <p>Review academic performance, attendance, quizzes, and assignments in one place.</p>
+          <h2>{pageTitle}</h2>
+          <p>{pageSubtitle}</p>
         </div>
 
         <div className="topbar-actions">
@@ -86,10 +98,10 @@ function TopBar() {
             onMouseLeave={() => setProfileHover(false)}
             style={{ transform: profileHover ? 'translateY(-1px)' : 'none' }}
           >
-            <div className="profile-avatar">MK</div>
+            <div className="profile-avatar">{initials}</div>
             <div className="profile-meta">
-              <span>Mujtaba khan</span>
-              <span>Student</span>
+              <span>{userName}</span>
+              <span>{userRole}</span>
             </div>
             <FiChevronDown size={18} color="#10375C" />
           </div>
