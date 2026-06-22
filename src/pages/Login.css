@@ -582,6 +582,125 @@
   font-size: 14px;
 }
 
+/* ── Demo credentials hint box ── */
+.demo-creds-box {
+  background: linear-gradient(135deg, #eff6ff, #eef2ff);
+  border: 1.5px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 11px 14px;
+  margin-bottom: 20px;
+}
+
+.demo-creds-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.demo-creds-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.demo-creds-row:last-child { margin-bottom: 0; }
+
+.demo-creds-key {
+  font-size: 11px;
+  color: #3b82f6;
+  font-weight: 600;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.demo-creds-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e3a8a;
+  background: rgba(255,255,255,0.7);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+  font-family: 'Consolas', 'Courier New', monospace;
+  letter-spacing: 0.3px;
+}
+
+/* ── Error message ── */
+.login-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 14px;
+  animation: errorSlideIn 0.25s ease both;
+}
+
+@keyframes errorSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Error border on inputs ── */
+.login-input-error {
+  border-color: #fca5a5 !important;
+  background: #fff5f5 !important;
+}
+
+.login-input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.10) !important;
+}
+
+/* ── Shake animation ── */
+@keyframes shakeForm {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-7px); }
+  30%       { transform: translateX(7px); }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.login-shake {
+  animation: shakeForm 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* ── Loading spinner in button ── */
+.login-btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes spinAnim {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin-icon {
+  animation: spinAnim 0.8s linear infinite;
+}
+
+.login-btn-primary:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
 /* ── Switch student / teacher link row ── */
 .login-switch-row {
   display: flex;

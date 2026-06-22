@@ -5,10 +5,13 @@ import Sidebar from './components/sidebar';
 import Dashboard from './pages/Dashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import Assignments from './pages/Assignments';
+import Settings from './pages/Settings';
 import Calendar from '../titan-dashboard/src/component/Calendar';
 import Quiz from '../titan-dashboard/src/component/Quiz';
 
 function AppShell({ user, onLogout }) {
+  const userName = user.role === 'teacher' ? 'Sir Yasir Ali' : 'Mujtaba Khan';
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar onLogout={onLogout} role={user.role} />
@@ -21,6 +24,10 @@ function AppShell({ user, onLogout }) {
           <Route path="/assignments" element={<Assignments />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/quizzes" element={<Quiz />} />
+          <Route
+            path="/settings"
+            element={<Settings role={user.role} userName={userName} onLogout={onLogout} />}
+          />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>

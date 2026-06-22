@@ -369,23 +369,18 @@ function BluePanel({ isTeacher }) {
         <div className="login-footer-inner">
           <p>© 2025 Titan Learning System. All rights reserved.</p>
           <div className="login-socials">
-            <a href="#" className="social-icon" aria-label="Facebook">
+            <a href="https://www.facebook.com/share/18gxDyAKEQ/" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Facebook">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
               </svg>
             </a>
-            <a href="#" className="social-icon" aria-label="Twitter">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z" />
-              </svg>
-            </a>
-            <a href="#" className="social-icon" aria-label="YouTube">
+            <a href="https://www.youtube.com/@TITANPK2025" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="YouTube">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" />
                 <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#0A3D91" />
               </svg>
             </a>
-            <a href="#" className="social-icon" aria-label="LinkedIn">
+            <a href="https://www.linkedin.com/in/titan-taj12/" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="LinkedIn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
                 <rect x="2" y="9" width="4" height="12" />
@@ -400,6 +395,14 @@ function BluePanel({ isTeacher }) {
 }
 
 /* ══════════════════════════════════════════════════
+   DEMO CREDENTIALS
+══════════════════════════════════════════════════ */
+const DEMO_CREDENTIALS = {
+  student: { id: '42301-1234567-8', password: 'Titan@2026' },
+  teacher: { id: 'TCH-001',         password: 'Teacher@2026' },
+};
+
+/* ══════════════════════════════════════════════════
    FORM PANEL (shared by both views)
 ══════════════════════════════════════════════════ */
 function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
@@ -407,15 +410,42 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
   const [showPass,     setShowPass]     = useState(false);
   const [showCrPass,   setShowCrPass]   = useState(false);
   const [createForm,   setCreateForm]   = useState({ cnic: '', dob: '', password: '' });
+  const [error,        setError]        = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [shake,        setShake]        = useState(false);
 
+  const creds         = isTeacher ? DEMO_CREDENTIALS.teacher : DEMO_CREDENTIALS.student;
   const idLabel       = isTeacher ? 'Employee / Teacher ID'             : 'CNIC / Student ID';
   const idPlaceholder = isTeacher ? 'Enter your Employee or Teacher ID' : 'Enter your CNIC or Student ID';
   const loginTitle    = isTeacher ? 'Teacher Login'                     : 'Student Login';
   const switchLabel   = isTeacher ? 'Student Login'                     : 'Teacher Login';
 
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 600);
+  };
+
   const handleLogin = (e) => {
     e.preventDefault();
-    if (onLogin) onLogin();
+    setError('');
+
+    if (!form.id.trim() || !form.password.trim()) {
+      setError('Please fill in all fields.');
+      triggerShake();
+      return;
+    }
+
+    if (form.id.trim() !== creds.id || form.password !== creds.password) {
+      setError('Invalid ID or password. Please check your credentials.');
+      triggerShake();
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      if (onLogin) onLogin();
+    }, 900);
   };
 
   const handleCreatePassword = (e) => {
@@ -449,17 +479,30 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
             <h3 className="login-form-title">{loginTitle}</h3>
             <p className="login-form-sub">Enter your credentials to access your account</p>
 
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleLogin} className={shake ? 'login-shake' : ''}>
+              {/* Error message */}
+              {error && (
+                <div className="login-error-msg">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {error}
+                </div>
+              )}
+
               <div className="login-field-group">
                 <label className="login-label">{idLabel}</label>
                 <div className="login-input-wrap">
                   <span className="login-input-icon"><PersonIcon /></span>
                   <input
                     type="text"
-                    className="login-input"
+                    className={`login-input${error ? ' login-input-error' : ''}`}
                     placeholder={idPlaceholder}
                     value={form.id}
-                    onChange={e => setForm(f => ({ ...f, id: e.target.value }))}
+                    onChange={e => { setError(''); setForm(f => ({ ...f, id: e.target.value })); }}
                     autoComplete="username"
                   />
                 </div>
@@ -471,10 +514,10 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                   <span className="login-input-icon"><LockIcon /></span>
                   <input
                     type={showPass ? 'text' : 'password'}
-                    className="login-input"
+                    className={`login-input${error ? ' login-input-error' : ''}`}
                     placeholder="Enter your password"
                     value={form.password}
-                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                    onChange={e => { setError(''); setForm(f => ({ ...f, password: e.target.value })); }}
                     autoComplete="current-password"
                   />
                   <button type="button" className="login-eye-btn"
@@ -498,12 +541,23 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                 <a href="#" className="login-forgot">Forgot Password?</a>
               </div>
 
-              <button type="submit" className="login-btn-primary">Login</button>
+              <button type="submit" className="login-btn-primary" disabled={loading}>
+                {loading ? (
+                  <span className="login-btn-spinner">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2.5" className="spin-icon">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    Verifying…
+                  </span>
+                ) : 'Login'}
+              </button>
 
               {/* Switch student ↔ teacher */}
               <div className="login-switch-row">
                 <span>{isTeacher ? 'Are you a Student?' : 'Are you a Teacher?'}</span>
-                <button type="button" className="login-switch-link" onClick={onSwitch}>
+                <button type="button" className="login-switch-link"
+                  onClick={() => { setError(''); onSwitch(); }}>
                   {switchLabel}
                 </button>
               </div>
