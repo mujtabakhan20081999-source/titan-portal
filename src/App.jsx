@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Sidebar from './components/sidebar';
 import Dashboard from './pages/Dashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
+import TeacherAttendance from './pages/TeacherAttendance';
 import Assignments from './pages/Assignments';
 import Settings from './pages/Settings';
 import Calendar from '../titan-dashboard/src/component/Calendar';
@@ -22,6 +23,7 @@ function AppShell({ user, onLogout }) {
             element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard />}
           />
           <Route path="/assignments" element={<Assignments />} />
+          <Route path="/attendance" element={<TeacherAttendance />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/quizzes" element={<Quiz />} />
           <Route
