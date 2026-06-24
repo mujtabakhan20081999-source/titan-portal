@@ -254,6 +254,19 @@
     padding-right: 20px;
   }
 
+  .asgn-header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .asgn-tabs {
+    gap: 18px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .asgn-tab-btn { white-space: nowrap; }
+
   .asgn-card {
     flex-direction: column;
     align-items: flex-start;
@@ -269,4 +282,16 @@
   .asgn-due {
     align-items: flex-start;
   }
+}
+
+@media (max-width: 480px) {
+  .asgn-header,
+  .asgn-tabs,
+  .asgn-list {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .asgn-header-left h1 { font-size: 1.4rem; }
+  .asgn-user-text { display: none; }
 }

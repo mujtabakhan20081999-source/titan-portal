@@ -94,6 +94,7 @@ function StudentsTab({ search }) {
   );
 
   return (
+    <div className="table-scroll">
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
       {/* table header */}
       <div style={{
@@ -139,6 +140,7 @@ function StudentsTab({ search }) {
           </div>
         ))
       )}
+    </div>
     </div>
   );
 }
@@ -197,6 +199,7 @@ function AttendanceTab() {
       </div>
 
       {/* table */}
+      <div className="table-scroll">
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: '2fr 1fr 160px',
@@ -225,6 +228,7 @@ function AttendanceTab() {
           </div>
         ))}
       </div>
+      </div>
     </div>
   );
 }
@@ -233,6 +237,7 @@ function AttendanceTab() {
 function AssignmentsTab() {
   const statusColor = { Active: '#2563eb', Closed: '#6b7280', Upcoming: '#d97706' };
   return (
+    <div className="table-scroll">
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
       <div style={{
         display: 'grid', gridTemplateColumns: '2fr 80px 1fr 1fr 100px',
@@ -276,6 +281,7 @@ function AssignmentsTab() {
         </div>
       ))}
     </div>
+    </div>
   );
 }
 
@@ -284,6 +290,7 @@ function QuizzesTab() {
   const statusColor = { Scheduled: '#2563eb', Completed: '#16a34a' };
   const statusBg    = { Scheduled: '#eff6ff',  Completed: '#f0fdf4'  };
   return (
+    <div className="table-scroll">
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
       <div style={{
         display: 'grid', gridTemplateColumns: '2fr 80px 1fr 1fr 1fr 100px',
@@ -320,6 +327,7 @@ function QuizzesTab() {
           }}>{q.status}</span>
         </div>
       ))}
+    </div>
     </div>
   );
 }
@@ -395,10 +403,10 @@ function TeacherAttendance() {
         pageSubtitle="View and manage student attendance records."
       />
 
-      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="page-body">
 
         {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div className="ta-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {[
             { icon: <Users size={22} color="#2563eb" />, bg: '#dbeafe', value: totalStudents, label: 'Total Students', sub: 'Active Enrollments' },
             { icon: <Clock size={22} color="#0891b2" />, bg: '#cffafe', value: `${todayPct}%`,  label: "Today's Attendance",  sub: 'Present Today'      },
@@ -419,12 +427,12 @@ function TeacherAttendance() {
 
         {/* Tabs + Search row */}
         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4' }}>
-          <div style={{
+          <div className="ta-tabbar" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 20px', borderBottom: '1px solid #e8edf4', flexWrap: 'wrap', gap: 8,
           }}>
             {/* tab buttons */}
-            <div style={{ display: 'flex', gap: 0 }}>
+            <div className="ta-tabs" style={{ display: 'flex', gap: 0 }}>
               {TABS.map((t) => (
                 <button
                   key={t.key}
@@ -445,10 +453,10 @@ function TeacherAttendance() {
             </div>
 
             {/* search */}
-            <label style={{
+            <label className="ta-search" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               background: '#f4f6ff', borderRadius: 8, padding: '7px 14px',
-              border: '1px solid #e8edf4', my: 8,
+              border: '1px solid #e8edf4',
             }}>
               <Search size={15} color="#5F7A9E" />
               <input

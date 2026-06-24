@@ -76,7 +76,7 @@ export default function Calendar() {
   const totalQuizzes = Object.keys(quizzesByDay).length;
 
   return (
-    <div style={{
+    <div className="cal-page" style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #f0f9ff 100%)',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -164,6 +164,22 @@ export default function Calendar() {
         }
         .stat-row:last-child { margin-bottom: 0; }
         .stat-row:hover { background: #f0f4ff; }
+
+        @media (max-width: 900px) {
+          .cal-page { padding: 22px 16px !important; }
+          .cal-main { flex-direction: column !important; }
+          .cal-side { width: 100% !important; }
+          .cal-title { font-size: 24px !important; }
+        }
+        @media (max-width: 560px) {
+          .cal-page { padding: 16px 12px !important; }
+          .cal-day-cell { min-height: 60px !important; padding: 5px 3px 4px !important; gap: 2px !important; }
+          .event-pill { font-size: 8px !important; padding: 1px 3px !important; }
+          .cal-daynum { width: 22px !important; height: 22px !important; font-size: 11px !important; }
+        }
+        @media (max-width: 380px) {
+          .cal-day-cell { min-height: 50px !important; }
+        }
       `}</style>
 
       {/* ── Page Header ── */}
@@ -173,7 +189,7 @@ export default function Calendar() {
           <span style={{ color: '#cbd5e1', fontSize: 12 }}>›</span>
           <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 700 }}>Calendar</span>
         </div>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 900, color: '#1e1b4b', letterSpacing: '-0.5px' }}>
+        <h1 className="cal-title" style={{ margin: 0, fontSize: 30, fontWeight: 900, color: '#1e1b4b', letterSpacing: '-0.5px' }}>
           My Calendar
         </h1>
         <p style={{ margin: '4px 0 0', fontSize: 14, color: '#64748b', fontWeight: 500 }}>
@@ -182,7 +198,7 @@ export default function Calendar() {
       </div>
 
       {/* ── Main Layout ── */}
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', animation: 'slideUp 0.45s ease 0.05s both' }}>
+      <div className="cal-main" style={{ display: 'flex', gap: 20, alignItems: 'flex-start', animation: 'slideUp 0.45s ease 0.05s both' }}>
 
         {/* ════ Calendar Card ════ */}
         <div style={{
@@ -302,7 +318,7 @@ export default function Calendar() {
                 >
                   {/* Day Number */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{
+                    <span className="cal-daynum" style={{
                       width: 26, height: 26,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       borderRadius: '50%',
@@ -365,7 +381,7 @@ export default function Calendar() {
         </div>
 
         {/* ════ Side Panel ════ */}
-        <div style={{ width: 268, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="cal-side" style={{ width: 268, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* ── Selected Day Card ── */}
           <div style={{

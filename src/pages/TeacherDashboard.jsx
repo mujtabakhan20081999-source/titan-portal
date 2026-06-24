@@ -208,11 +208,11 @@ function TeacherDashboard() {
         pageSubtitle="Manage your courses, track student progress, and stay on top of your teaching schedule."
       />
 
-      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="page-body" style={{ gap: 24 }}>
 
         {/* Top Row: 3 Stats + Teaching Schedule */}
-        <div style={{ display: 'flex', gap: 20, alignItems: 'stretch' }}>
-          <div style={{ display: 'flex', flex: 3, gap: 20 }}>
+        <div className="flex-row-responsive" style={{ gap: 20, alignItems: 'stretch' }}>
+          <div className="td-statbox-row" style={{ display: 'flex', flex: 3, gap: 20 }}>
             <StatBox icon={BookOpen}      value={6}   label="Active Courses"     iconBg="#dcfce7" iconColor="#16a34a" />
             <StatBox icon={Users}         value={102} label="Enrolled Students"  iconBg="#dbeafe" iconColor="#2563eb" />
             <StatBox icon={ClipboardList} value={0}   label="Total Assignments"  iconBg="#f3e8ff" iconColor="#9333ea" />

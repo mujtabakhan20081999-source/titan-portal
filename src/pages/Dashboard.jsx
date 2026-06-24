@@ -10,7 +10,7 @@ function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <TopBar />
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="page-body">
 
       {/* Row 1: 4 Stats Cards */}
       <div className="grid-4">
@@ -21,7 +21,7 @@ function Dashboard() {
       </div>
 
       {/* Row 2: Attendance Chart + Recent Assignments */}
-      <div style={{ display: 'flex', gap: 16 }}>
+      <div className="flex-row-responsive">
         <div style={{ flex: 1.2 }}>
           <AttendanceChart />
         </div>
@@ -31,7 +31,7 @@ function Dashboard() {
       </div>
 
       {/* Row 3: Upcoming Quizzes + Course Progress */}
-      <div style={{ display: 'flex', gap: 16 }}>
+      <div className="flex-row-responsive">
         <div style={{ flex: 1 }}>
           <UpcomingQuizzes />
         </div>

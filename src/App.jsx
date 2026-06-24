@@ -16,9 +16,9 @@ function AppShell({ user, onLogout }) {
   const userName = user.role === 'teacher' ? 'Sir Yasir Ali' : 'Mujtaba Khan';
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar onLogout={onLogout} role={user.role} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="main-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Routes>
           <Route
             path="/dashboard"

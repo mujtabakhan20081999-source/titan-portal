@@ -122,9 +122,76 @@ button {
 }
 
 @media (max-width: 1100px) {
-  .grid-4, .grid-2 {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-2 {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 560px) {
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Responsive helpers ─────────────────────────── */
+/* Generic page body padding used by inline-styled pages */
+.page-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .page-body { padding: 16px; gap: 16px; }
+}
+
+/* Flex row that stacks vertically on small screens */
+.flex-row-responsive {
+  display: flex;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .flex-row-responsive { flex-direction: column; }
+}
+
+/* Horizontal scroll wrapper for wide data tables */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll > * {
+  min-width: 640px;
+}
+
+@media (max-width: 900px) {
+  .ta-stats-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 700px) {
+  /* Teacher attendance: scrollable tabs + full-width search */
+  .ta-tabbar { padding: 0 12px !important; gap: 10px !important; }
+  .ta-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ta-tabs button { padding: 12px 14px !important; font-size: 12px !important; }
+  .ta-search {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .ta-search input { width: 100% !important; flex: 1; }
+}
+
+@media (max-width: 560px) {
+  .td-statbox-row { flex-direction: column; }
 }
 
 .topbar {
@@ -724,13 +791,104 @@ button {
   .search-box { min-width: 210px; }
 }
 
-@media (max-width: 760px) {
-  .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; min-height: auto; position: relative; }
+@media (max-width: 900px) {
   .main-panel { width: 100%; }
   .topbar-inner { flex-direction: column; align-items: stretch; }
-  .topbar-actions { justify-content: flex-start; }
-  .notification-panel { top: 82px; right: 18px; left: 18px; width: auto; }
+  .topbar-title h2 { font-size: 24px; }
+
+  /* Hide search, notifications, and profile chip on small screens */
+  .topbar-actions,
+  .topbar-right-section { display: none; }
+
+  /* ── Sidebar becomes a fixed bottom navigation bar ── */
+  .sidebar {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    min-height: 0 !important;
+    height: auto !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 8px 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 28px rgba(16, 55, 92, 0.22);
+    z-index: 100;
+    overflow: visible;
+  }
+
+  .sidebar.collapsed { width: 100%; padding: 6px 6px; }
+
+  /* Hide brand, toggle, and promo card on the bar */
+  .sidebar-header,
+  .sidebar-toggle,
+  .sidebar-cta { display: none; }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex: 1;
+    gap: 0;
+    justify-content: space-around;
+    overflow: visible;
+  }
+
+  /* Each nav item: icon on top, label below */
+  .sidebar-item {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 4px;
+    min-width: 0;
+    border-radius: 12px;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .sidebar-item:hover {
+    background: transparent;
+    transform: none;
+    color: #fff;
+  }
+
+  /* Active state uses the yellow theme accent (no white box) */
+  .sidebar-item.active,
+  .sidebar-item.active .sidebar-item-icon {
+    background: transparent;
+    color: var(--primary);
+  }
+
+  .sidebar-item span {
+    font-size: 10px;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-item-icon { width: 22px; height: 22px; }
+
+  /* Logout sits as the last item in the bar */
+  .sidebar-logout {
+    flex-direction: column;
+    gap: 3px;
+    width: auto;
+    flex-shrink: 0;
+    padding: 6px 10px;
+    margin: 0 !important;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    border-radius: 12px;
+  }
+
+  .sidebar-logout:hover { background: rgba(243, 198, 35, 0.18); }
+  .sidebar-logout span { font-size: 10px; font-weight: 600; }
+
+  /* Leave room so content isn't hidden behind the fixed bar */
+  .main-panel { padding-bottom: 74px; }
 }
 
 /* ── Keyframes ──────────────────────────────────── */

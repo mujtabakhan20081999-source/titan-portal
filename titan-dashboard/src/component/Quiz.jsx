@@ -272,6 +272,12 @@ export default function Quiz() {
           border-color: #818cf8 !important;
           box-shadow: 0 0 0 3px rgba(129,140,248,0.15) !important;
         }
+        @media (max-width: 640px) {
+          .quiz-stats { grid-template-columns: 1fr !important; }
+          .quiz-card-body { flex-wrap: wrap !important; gap: 12px !important; padding: 16px !important; }
+          .quiz-card-right { width: 100%; justify-content: space-between; }
+          .quiz-search-box { width: 100% !important; }
+        }
       `}</style>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
@@ -292,7 +298,7 @@ export default function Quiz() {
         </div>
 
         {/* Stats Row */}
-        <div style={{
+        <div className="quiz-stats" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 16,
@@ -354,7 +360,7 @@ export default function Quiz() {
           </div>
 
           {/* Search */}
-          <div className="search-box" style={{
+          <div className="search-box quiz-search-box" style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -414,7 +420,7 @@ export default function Quiz() {
                   }} />
 
                   {/* Card Body */}
-                  <div style={{
+                  <div className="quiz-card-body" style={{
                     flex: 1,
                     padding: '20px 22px',
                     display: 'flex',
@@ -499,7 +505,7 @@ export default function Quiz() {
                     </div>
 
                     {/* Right Section */}
-                    <div style={{
+                    <div className="quiz-card-right" style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 16,
