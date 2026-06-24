@@ -8,21 +8,19 @@ import {
   FiFileText,
   FiBarChart2,
   FiCalendar,
-  FiBookOpen,
+  FiTrendingUp,
   FiUser,
   FiSettings,
   FiLogOut,
 } from 'react-icons/fi';
 
 const studentMenuItems = [
-  { icon: <FiHome />,      label: 'Dashboard',  path: '/dashboard' },
-  { icon: <FiClipboard />, label: 'Assignments', path: '/assignments' },
-  { icon: <FiFileText />,  label: 'Quizzes',     path: '/quizzes' },
-  { icon: <FiBarChart2 />, label: 'Attendance',  path: '/attendance' },
-  { icon: <FiCalendar />,  label: 'Leaves',      path: '/leaves' },
-  { icon: <FiBookOpen />,  label: 'My Courses',  path: '/courses' },
-  { icon: <FiUser />,      label: 'Profile',     path: '/profile' },
-  { icon: <FiSettings />,  label: 'Settings',    path: '/settings' },
+  { icon: <FiHome />,       label: 'Dashboard',   path: '/dashboard' },
+  { icon: <FiClipboard />,  label: 'Assignments', path: '/assignments' },
+  { icon: <FiFileText />,   label: 'Quizzes',     path: '/quizzes' },
+  { icon: <FiTrendingUp />, label: 'Progress',    path: '/progress' },
+  { icon: <FiUser />,       label: 'Profile',     path: '/profile' },
+  { icon: <FiSettings />,   label: 'Settings',    path: '/settings' },
 ];
 
 const teacherMenuItems = [
