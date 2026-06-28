@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthContext } from './auth';
 import Login from './pages/Login';
 import Sidebar from './components/sidebar';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,7 @@ import TeacherAttendance from './pages/TeacherAttendance';
 import Assignments from './pages/Assignments';
 import Progress from './pages/Progress';
 import MyCourses from './pages/MyCourses';
+import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Calendar from '../titan-dashboard/src/component/Calendar';
 import Quiz from '../titan-dashboard/src/component/Quiz';
@@ -29,6 +31,7 @@ function AppShell({ user, onLogout }) {
           <Route path="/attendance" element={<TeacherAttendance />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/quizzes" element={<Quiz />} />
+          <Route path="/profile" element={<Profile role={user.role} />} />
           <Route
             path="/settings"
             element={<Settings role={user.role} userName={userName} onLogout={onLogout} />}
@@ -49,6 +52,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AuthContext.Provider value={{ logout: () => setUser(null) }}>
       <Routes>
         <Route
           path="/login"
@@ -77,6 +81,7 @@ function App() {
           }
         />
       </Routes>
+      </AuthContext.Provider>
     </BrowserRouter>
   );
 }

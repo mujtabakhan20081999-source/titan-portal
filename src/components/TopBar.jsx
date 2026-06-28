@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { FiBell, FiSearch, FiChevronDown } from 'react-icons/fi';
+import { useState, useRef, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FiBell, FiSearch, FiChevronDown, FiUser, FiLogOut } from 'react-icons/fi';
+import { AuthContext } from '../auth';
 
 const notificationsData = [
   {
@@ -26,9 +28,23 @@ function TopBar({
   pageSubtitle = 'Review academic performance, attendance, quizzes, and assignments in one place.',
 }) {
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [profileHover, setProfileHover] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [notifications] = useState(notificationsData);
   const unreadCount = notifications.length;
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileOpen]);
 
   const initials = userName
     .split(' ')
@@ -92,18 +108,44 @@ function TopBar({
             </div>
           </div>
 
-          <div
-            className="profile-chip"
-            onMouseEnter={() => setProfileHover(true)}
-            onMouseLeave={() => setProfileHover(false)}
-            style={{ transform: profileHover ? 'translateY(-1px)' : 'none' }}
-          >
-            <div className="profile-avatar">{initials}</div>
-            <div className="profile-meta">
-              <span>{userName}</span>
-              <span>{userRole}</span>
+          <div className="profile-wrapper" ref={profileRef}>
+            <button
+              type="button"
+              className={`profile-chip ${profileOpen ? 'open' : ''}`}
+              onClick={() => setProfileOpen((value) => !value)}
+              aria-label="Open profile menu"
+            >
+              <div className="profile-avatar">{initials}</div>
+              <div className="profile-meta">
+                <span>{userName}</span>
+                <span>{userRole}</span>
+              </div>
+              <FiChevronDown
+                size={18}
+                color="#10375C"
+                style={{ transition: 'transform .2s ease', transform: profileOpen ? 'rotate(180deg)' : 'none' }}
+              />
+            </button>
+
+            <div className={`profile-menu ${profileOpen ? 'open' : ''}`}>
+              <button
+                type="button"
+                className="profile-menu-item"
+                onClick={() => { setProfileOpen(false); navigate('/profile'); }}
+              >
+                <FiUser size={17} />
+                <span>Profile</span>
+              </button>
+              <div className="profile-menu-divider" />
+              <button
+                type="button"
+                className="profile-menu-item danger"
+                onClick={() => { setProfileOpen(false); logout(); }}
+              >
+                <FiLogOut size={17} />
+                <span>Logout</span>
+              </button>
             </div>
-            <FiChevronDown size={18} color="#10375C" />
           </div>
         </div>
       </div>

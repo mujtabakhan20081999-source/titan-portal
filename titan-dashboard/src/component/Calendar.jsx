@@ -105,12 +105,14 @@ export default function Calendar() {
           cursor: pointer;
           position: relative;
           min-height: 100px;
+          min-width: 0;
           box-sizing: border-box;
           padding: 8px 7px 6px;
           display: flex;
           flex-direction: column;
           gap: 3px;
         }
+        .cal-day-cell > div { min-width: 0; }
         .cal-day-cell:hover {
           background: #f0f4ff !important;
           z-index: 1;
