@@ -31,7 +31,6 @@ function MyCourses() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
 
-  // Feedback modal state
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -56,7 +55,7 @@ function MyCourses() {
   const submitFeedback = (e) => {
     e.preventDefault();
     if (rating === 0 || !message.trim()) return;
-    // Demo: persist locally so feedback isn't lost on refresh
+
     const saved = JSON.parse(localStorage.getItem('titan_feedback') || '[]');
     saved.push({ rating, message: message.trim(), date: new Date().toISOString() });
     localStorage.setItem('titan_feedback', JSON.stringify(saved));
@@ -65,7 +64,7 @@ function MyCourses() {
 
   return (
     <div className="courses-landing">
-      {/* Top bar */}
+
       <header className="cl-topbar">
         <div className="cl-brand">
           <div className="cl-brand-logo">
@@ -92,7 +91,6 @@ function MyCourses() {
         </button>
       </header>
 
-      {/* Course cards */}
       <div className="cl-body">
         {enrolledCourses.map((c) => (
           <article className="cl-card" key={c.id}>
@@ -144,7 +142,6 @@ function MyCourses() {
         ))}
       </div>
 
-      {/* Feedback modal */}
       {feedbackOpen && (
         <div className="cl-modal-overlay" onClick={closeFeedback}>
           <div className="cl-modal" onClick={(e) => e.stopPropagation()}>

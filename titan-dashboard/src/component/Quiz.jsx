@@ -282,7 +282,6 @@ export default function Quiz() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
 
-        {/* Breadcrumb + Header */}
         <div style={{ animation: 'slideUp 0.4s ease both' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
             <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Dashboard</span>
@@ -297,7 +296,6 @@ export default function Quiz() {
           </p>
         </div>
 
-        {/* Stats Row */}
         <div className="quiz-stats" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
@@ -313,7 +311,6 @@ export default function Quiz() {
             gradient="linear-gradient(135deg, #059669 0%, #0d9488 100%)" delay={0.15} />
         </div>
 
-        {/* Controls */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -323,7 +320,7 @@ export default function Quiz() {
           marginBottom: 20,
           animation: 'slideUp 0.4s ease 0.2s both',
         }}>
-          {/* Tabs */}
+
           <div style={{
             display: 'flex',
             background: '#fff',
@@ -359,7 +356,6 @@ export default function Quiz() {
             ))}
           </div>
 
-          {/* Search */}
           <div className="search-box quiz-search-box" style={{
             display: 'flex',
             alignItems: 'center',
@@ -386,7 +382,6 @@ export default function Quiz() {
           </div>
         </div>
 
-        {/* Quiz Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {filtered.map((quiz, idx) => {
             const c         = colorMap[quiz.color];
@@ -411,7 +406,6 @@ export default function Quiz() {
               >
                 <div style={{ display: 'flex', alignItems: 'stretch' }}>
 
-                  {/* Color Strip */}
                   <div style={{
                     width: 5,
                     flexShrink: 0,
@@ -419,7 +413,6 @@ export default function Quiz() {
                     borderRadius: '0',
                   }} />
 
-                  {/* Card Body */}
                   <div className="quiz-card-body" style={{
                     flex: 1,
                     padding: '20px 22px',
@@ -428,7 +421,6 @@ export default function Quiz() {
                     gap: 18,
                   }}>
 
-                    {/* Icon Box */}
                     <div style={{
                       width: 56,
                       height: 56,
@@ -446,9 +438,8 @@ export default function Quiz() {
                       {quiz.icon}
                     </div>
 
-                    {/* Info Block */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Title Row */}
+
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                         <h3 style={{
                           margin: 0, fontSize: 15, fontWeight: 800,
@@ -467,7 +458,6 @@ export default function Quiz() {
                         </span>
                       </div>
 
-                      {/* Description */}
                       <p style={{
                         margin: '0 0 10px', fontSize: 12, color: '#94a3b8',
                         lineHeight: 1.6, fontWeight: 500,
@@ -475,7 +465,6 @@ export default function Quiz() {
                         {quiz.description}
                       </p>
 
-                      {/* Meta Pills */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {[
                           {
@@ -504,7 +493,6 @@ export default function Quiz() {
                       </div>
                     </div>
 
-                    {/* Right Section */}
                     <div className="quiz-card-right" style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -516,7 +504,7 @@ export default function Quiz() {
                       )}
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-                        {/* Status Badge */}
+
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6,
                           padding: '5px 14px', borderRadius: 20, fontSize: 11, fontWeight: 800,
@@ -533,7 +521,6 @@ export default function Quiz() {
                           {quiz.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </span>
 
-                        {/* Action Button */}
                         {quiz.status === 'upcoming' ? (
                           <button className="prepare-btn" style={{
                             fontSize: 12, fontWeight: 800,
@@ -563,7 +550,6 @@ export default function Quiz() {
             );
           })}
 
-          {/* Empty State */}
           {filtered.length === 0 && (
             <div style={{
               padding: '72px 0',

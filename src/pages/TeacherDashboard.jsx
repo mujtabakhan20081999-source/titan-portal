@@ -139,7 +139,7 @@ function CourseCard({ course }) {
       gap: 14,
       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
     }}>
-      {/* Header */}
+
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: course.titleColor, lineHeight: 1.4 }}>
@@ -162,7 +162,6 @@ function CourseCard({ course }) {
         <p style={{ fontSize: 12, color: '#888', marginTop: 1 }}>{course.campus}</p>
       </div>
 
-      {/* Progress Bar */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>Progress</span>
@@ -179,7 +178,6 @@ function CourseCard({ course }) {
         </div>
       </div>
 
-      {/* Details */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#444' }}>
           <User size={13} color="#888" />
@@ -210,7 +208,6 @@ function TeacherDashboard() {
 
       <div className="page-body" style={{ gap: 24 }}>
 
-        {/* Top Row: 3 Stats + Teaching Schedule */}
         <div className="flex-row-responsive" style={{ gap: 20, alignItems: 'stretch' }}>
           <div className="td-statbox-row" style={{ display: 'flex', flex: 3, gap: 20 }}>
             <StatBox icon={BookOpen}      value={6}   label="Active Courses"     iconBg="#dcfce7" iconColor="#16a34a" />
@@ -218,7 +215,6 @@ function TeacherDashboard() {
             <StatBox icon={ClipboardList} value={0}   label="Total Assignments"  iconBg="#f3e8ff" iconColor="#9333ea" />
           </div>
 
-          {/* Teaching Schedule */}
           <div className="card card-padding" style={{ flex: 1.1, minWidth: 210 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Calendar size={15} color="#10375C" />
@@ -248,7 +244,6 @@ function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Active Courses Grid */}
         <div>
           <h2 style={{ fontWeight: 700, fontSize: 17, color: '#10375C', marginBottom: 16 }}>
             Active Courses

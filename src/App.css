@@ -135,9 +135,6 @@ button {
     grid-template-columns: 1fr;
   }
 }
-
-/* ── Responsive helpers ─────────────────────────── */
-/* Generic page body padding used by inline-styled pages */
 .page-body {
   padding: 24px;
   display: flex;
@@ -148,8 +145,6 @@ button {
 @media (max-width: 600px) {
   .page-body { padding: 16px; gap: 16px; }
 }
-
-/* Flex row that stacks vertically on small screens */
 .flex-row-responsive {
   display: flex;
   gap: 16px;
@@ -158,8 +153,6 @@ button {
 @media (max-width: 900px) {
   .flex-row-responsive { flex-direction: column; }
 }
-
-/* Horizontal scroll wrapper for wide data tables */
 .table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -175,7 +168,6 @@ button {
 }
 
 @media (max-width: 700px) {
-  /* Teacher attendance: scrollable tabs + full-width search */
   .ta-tabbar { padding: 0 12px !important; gap: 10px !important; }
   .ta-tabs {
     width: 100%;
@@ -457,8 +449,6 @@ button {
   border-color: rgba(17, 80, 192, .45);
   box-shadow: 0 6px 18px rgba(16, 55, 92, .14);
 }
-
-/* ── Dropdown menu ── */
 .profile-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -873,12 +863,8 @@ button {
   .main-panel { width: 100%; }
   .topbar-inner { flex-direction: column; align-items: stretch; }
   .topbar-title h2 { font-size: 24px; }
-
-  /* Hide search, notifications, and profile chip on small screens */
   .topbar-actions,
   .topbar-right-section { display: none; }
-
-  /* ── Sidebar becomes a fixed bottom navigation bar ── */
   .sidebar {
     position: fixed !important;
     top: auto !important;
@@ -899,8 +885,6 @@ button {
   }
 
   .sidebar.collapsed { width: 100%; padding: 6px 6px; }
-
-  /* Hide brand, toggle, and promo card on the bar */
   .sidebar-header,
   .sidebar-toggle,
   .sidebar-cta { display: none; }
@@ -912,8 +896,6 @@ button {
     justify-content: space-around;
     overflow: visible;
   }
-
-  /* Each nav item: icon on top, label below */
   .sidebar-item {
     flex: 1;
     flex-direction: column;
@@ -930,8 +912,6 @@ button {
     transform: none;
     color: #fff;
   }
-
-  /* Active state uses the yellow theme accent (no white box) */
   .sidebar-item.active,
   .sidebar-item.active .sidebar-item-icon {
     background: transparent;
@@ -948,8 +928,6 @@ button {
   }
 
   .sidebar-item-icon { width: 22px; height: 22px; }
-
-  /* Logout sits as the last item in the bar */
   .sidebar-logout {
     flex-direction: column;
     gap: 3px;
@@ -964,12 +942,8 @@ button {
 
   .sidebar-logout:hover { background: rgba(243, 198, 35, 0.18); }
   .sidebar-logout span { font-size: 10px; font-weight: 600; }
-
-  /* Leave room so content isn't hidden behind the fixed bar */
   .main-panel { padding-bottom: 74px; }
 }
-
-/* ── Keyframes ──────────────────────────────────── */
 @keyframes cardEnter {
   from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -984,14 +958,10 @@ button {
   from { opacity: 0; transform: translateX(12px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-
-/* ── Stats card stagger ─────────────────────────── */
 .grid-4 > *:nth-child(1) { animation-delay: 0.05s; }
 .grid-4 > *:nth-child(2) { animation-delay: 0.13s; }
 .grid-4 > *:nth-child(3) { animation-delay: 0.21s; }
 .grid-4 > *:nth-child(4) { animation-delay: 0.29s; }
-
-/* ── List row hover ─────────────────────────────── */
 .list-row {
   border-radius: 12px;
   transition: background 0.2s ease, transform 0.2s ease, padding-left 0.2s ease;
@@ -1001,8 +971,6 @@ button {
   background: rgba(235, 131, 23, 0.06);
   transform: translateX(5px);
 }
-
-/* ── Section headline link hover ─────────────────── */
 .section-headline a {
   transition: transform .15s ease, background .15s ease, border-color .15s ease;
 }

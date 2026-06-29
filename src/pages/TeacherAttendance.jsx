@@ -6,8 +6,6 @@ import {
 } from 'lucide-react';
 import TopBar from '../components/TopBar';
 
-/* ── static data ─────────────────────────────────── */
-
 const studentsData = [
   { id: 1,  name: 'Abdul Jabbar',       roll: '477526', email: 'abjabbargopang@gmail.com',    status: 'ENROLLED', attendance: 92, course: 'MWAD' },
   { id: 2,  name: 'Abdul Rafay',        roll: '469955', email: 'rafaygameti0345@gmail.com',   status: 'ENROLLED', attendance: 88, course: 'MWAD' },
@@ -69,7 +67,6 @@ const TABS = [
   { key: 'Course Progress', icon: <BarChart2 size={15} /> },
 ];
 
-/* ── helper: avatar initials ─────────────────────── */
 function Avatar({ name, size = 34 }) {
   const initials = name.split(' ').slice(0, 2).map((w) => w[0].toUpperCase()).join('');
   const hue = name.charCodeAt(0) * 15;
@@ -85,7 +82,6 @@ function Avatar({ name, size = 34 }) {
   );
 }
 
-/* ── tab: Students ───────────────────────────────── */
 function StudentsTab({ search }) {
   const filtered = studentsData.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -96,7 +92,7 @@ function StudentsTab({ search }) {
   return (
     <div className="table-scroll">
     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
-      {/* table header */}
+
       <div style={{
         display: 'grid', gridTemplateColumns: '2fr 1fr 2.5fr 1fr 80px',
         padding: '12px 20px', borderBottom: '1px solid #e8edf4',
@@ -145,7 +141,6 @@ function StudentsTab({ search }) {
   );
 }
 
-/* ── tab: Attendance ─────────────────────────────── */
 function AttendanceTab() {
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const [marks, setMarks] = useState(() =>
@@ -169,7 +164,7 @@ function AttendanceTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* header row */}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', gap: 16 }}>
           {[
@@ -198,7 +193,6 @@ function AttendanceTab() {
         </div>
       </div>
 
-      {/* table */}
       <div className="table-scroll">
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4', overflow: 'hidden' }}>
         <div style={{
@@ -233,7 +227,6 @@ function AttendanceTab() {
   );
 }
 
-/* ── tab: Assignments ────────────────────────────── */
 function AssignmentsTab() {
   const statusColor = { Active: '#2563eb', Closed: '#6b7280', Upcoming: '#d97706' };
   return (
@@ -285,7 +278,6 @@ function AssignmentsTab() {
   );
 }
 
-/* ── tab: Quizzes ────────────────────────────────── */
 function QuizzesTab() {
   const statusColor = { Scheduled: '#2563eb', Completed: '#16a34a' };
   const statusBg    = { Scheduled: '#eff6ff',  Completed: '#f0fdf4'  };
@@ -332,7 +324,6 @@ function QuizzesTab() {
   );
 }
 
-/* ── tab: Course Progress ────────────────────────── */
 function CourseProgressTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -367,7 +358,7 @@ function CourseProgressTab() {
                 ))}
               </div>
             </div>
-            {/* Progress bar */}
+
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                 <span style={{ fontSize: 11, color: '#5F7A9E' }}>Course Completion</span>
@@ -384,7 +375,6 @@ function CourseProgressTab() {
   );
 }
 
-/* ── main component ──────────────────────────────── */
 function TeacherAttendance() {
   const [activeTab, setActiveTab] = useState('Students');
   const [search, setSearch] = useState('');
@@ -405,7 +395,6 @@ function TeacherAttendance() {
 
       <div className="page-body">
 
-        {/* Stats Row */}
         <div className="ta-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           {[
             { icon: <Users size={22} color="#2563eb" />, bg: '#dbeafe', value: totalStudents, label: 'Total Students', sub: 'Active Enrollments' },
@@ -425,13 +414,12 @@ function TeacherAttendance() {
           ))}
         </div>
 
-        {/* Tabs + Search row */}
         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e8edf4' }}>
           <div className="ta-tabbar" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 20px', borderBottom: '1px solid #e8edf4', flexWrap: 'wrap', gap: 8,
           }}>
-            {/* tab buttons */}
+
             <div className="ta-tabs" style={{ display: 'flex', gap: 0 }}>
               {TABS.map((t) => (
                 <button
@@ -452,7 +440,6 @@ function TeacherAttendance() {
               ))}
             </div>
 
-            {/* search */}
             <label className="ta-search" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               background: '#f4f6ff', borderRadius: 8, padding: '7px 14px',
@@ -472,7 +459,6 @@ function TeacherAttendance() {
             </label>
           </div>
 
-          {/* tab content */}
           <div style={{ padding: 20 }}>
             {activeTab === 'Students'        && <StudentsTab search={search} />}
             {activeTab === 'Attendance'      && <AttendanceTab />}

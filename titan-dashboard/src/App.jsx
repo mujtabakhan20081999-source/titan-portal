@@ -6,7 +6,6 @@ import Calendar from './component/Calendar'
 import Quiz from './component/Quiz'
 import './App.css'
 
-
 function App() {
 
   return (

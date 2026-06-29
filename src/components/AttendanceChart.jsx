@@ -8,8 +8,8 @@ const data = [
 
 const RADIUS  = 60;
 const CX = 75, CY = 75;
-const CIRCUM  = 2 * Math.PI * RADIUS; // ~376.99
-const GAP_DEG = 5; // degrees gap between segments
+const CIRCUM  = 2 * Math.PI * RADIUS;
+const GAP_DEG = 5;
 
 function buildSegments(items) {
   const total   = items.reduce((s, d) => s + d.value, 0);
@@ -61,12 +61,11 @@ function AttendanceChart() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
 
-        {/* Multi-color Donut */}
         <div style={{ position: 'relative', width: 150, height: 150, flexShrink: 0 }}>
           <svg width={150} height={150}>
-            {/* Track */}
+
             <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="#f0f0f0" strokeWidth={14} />
-            {/* Segments */}
+
             {segments.map((seg, i) => (
               <circle
                 key={seg.name}
@@ -96,7 +95,6 @@ function AttendanceChart() {
           </div>
         </div>
 
-        {/* Legend */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {data.map((d, i) => (
             <div key={d.name} style={{

@@ -184,7 +184,6 @@ export default function Calendar() {
         }
       `}</style>
 
-      {/* ── Page Header ── */}
       <div style={{ animation: 'slideUp 0.4s ease both', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
           <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Dashboard</span>
@@ -199,10 +198,8 @@ export default function Calendar() {
         </p>
       </div>
 
-      {/* ── Main Layout ── */}
       <div className="cal-main" style={{ display: 'flex', gap: 20, alignItems: 'flex-start', animation: 'slideUp 0.45s ease 0.05s both' }}>
 
-        {/* ════ Calendar Card ════ */}
         <div style={{
           flex: 1,
           background: '#fff',
@@ -212,7 +209,6 @@ export default function Calendar() {
           overflow: 'hidden',
         }}>
 
-          {/* ── Header ── */}
           <div style={{
             background: 'linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #7c3aed 100%)',
             padding: '18px 24px',
@@ -245,7 +241,6 @@ export default function Calendar() {
             </button>
           </div>
 
-          {/* ── Legend ── */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -271,7 +266,6 @@ export default function Calendar() {
             ))}
           </div>
 
-          {/* ── Weekday Headers ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid #eef0f8' }}>
             {weekdays.map((d, i) => (
               <div key={i} style={{
@@ -289,7 +283,6 @@ export default function Calendar() {
             ))}
           </div>
 
-          {/* ── Day Grid ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
             {dayCells.map((cell, idx) => {
               const hasEvent   = cell.isCurrentMonth && baseEvents[cell.dayNum];
@@ -318,7 +311,7 @@ export default function Calendar() {
                     boxShadow: isSelected ? 'inset 0 0 0 2px #6366f1' : 'none',
                   }}
                 >
-                  {/* Day Number */}
+
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
                     <span className="cal-daynum" style={{
                       width: 26, height: 26,
@@ -355,7 +348,6 @@ export default function Calendar() {
                     )}
                   </div>
 
-                  {/* Event pills */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
                     {hasEvent && baseEvents[cell.dayNum].slice(0, 2).map((ev, eIdx) => (
                       <span key={eIdx} className="event-pill" style={{
@@ -382,10 +374,8 @@ export default function Calendar() {
           </div>
         </div>
 
-        {/* ════ Side Panel ════ */}
         <div className="cal-side" style={{ width: 268, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* ── Selected Day Card ── */}
           <div style={{
             background: '#fff',
             borderRadius: 22,
@@ -395,14 +385,14 @@ export default function Calendar() {
             transition: 'all 0.3s ease',
             opacity: selectedDay ? 1 : 0.75,
           }}>
-            {/* Card Header */}
+
             <div style={{
               background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
               padding: '18px 20px 16px',
               position: 'relative',
               overflow: 'hidden',
             }}>
-              {/* Decorative circles */}
+
               <div style={{
                 position: 'absolute', top: -18, right: -18,
                 width: 80, height: 80, borderRadius: '50%',
@@ -440,7 +430,6 @@ export default function Calendar() {
               )}
             </div>
 
-            {/* Card Body */}
             <div style={{ padding: '16px 16px 18px' }}>
               {!selectedDay && (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -463,7 +452,6 @@ export default function Calendar() {
                 </div>
               )}
 
-              {/* Classes */}
               {selectedEvents && (
                 <div style={{ marginBottom: 12, animation: 'slideUp 0.3s ease both' }}>
                   <div style={{
@@ -508,7 +496,6 @@ export default function Calendar() {
                 </div>
               )}
 
-              {/* Quizzes */}
               {selectedQuizzes && (
                 <div style={{ animation: 'slideUp 0.35s ease 0.05s both' }}>
                   <div style={{
@@ -576,7 +563,6 @@ export default function Calendar() {
             </div>
           </div>
 
-          {/* ── This Month Stats ── */}
           <div style={{
             background: '#fff',
             borderRadius: 22,

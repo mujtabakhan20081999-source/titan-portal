@@ -12,7 +12,6 @@ function Dashboard() {
       <TopBar />
     <div className="page-body">
 
-      {/* Row 1: 4 Stats Cards */}
       <div className="grid-4">
         <StatsCard icon={CheckCircle}  title="Attendance"  value="85%" sub="Good"       subColor="#16a34a" trend="↑" />
         <StatsCard icon={ClipboardList} title="Assignments" value="05"  sub="2 Pending"  subColor="#f59e0b" />
@@ -20,7 +19,6 @@ function Dashboard() {
         <StatsCard icon={Calendar}     title="Leaves"      value="02"  sub="This Month" subColor="#555" />
       </div>
 
-      {/* Row 2: Attendance Chart + Recent Assignments */}
       <div className="flex-row-responsive">
         <div style={{ flex: 1.2 }}>
           <AttendanceChart />
@@ -30,7 +28,6 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Row 3: Upcoming Quizzes + Course Progress */}
       <div className="flex-row-responsive">
         <div style={{ flex: 1 }}>
           <UpcomingQuizzes />

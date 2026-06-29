@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import TopBar from '../components/TopBar';
 import '../styles/settings.css';
 
-/* ── Icons ─────────────────────────────────── */
 const icons = {
   profile:       '👤',
   appearance:    '🎨',
@@ -52,7 +51,6 @@ const accentColors = [
 
 const avatarColors = ['#1150c0','#7c3aed','#059669','#dc2626','#d97706','#0891b2','#db2777','#374151'];
 
-/* ── Toggle Switch ─────────────────────────── */
 function Toggle({ checked, onChange }) {
   return (
     <label className="toggle-switch">
@@ -62,7 +60,6 @@ function Toggle({ checked, onChange }) {
   );
 }
 
-/* ── Save Button ───────────────────────────── */
 function SaveBtn({ onClick, saved }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
@@ -89,7 +86,6 @@ function SaveBtn({ onClick, saved }) {
   );
 }
 
-/* ── Section Card ──────────────────────────── */
 function SectionCard({ emoji, color, bg, title, desc, children }) {
   return (
     <div className="settings-card">
@@ -107,7 +103,6 @@ function SectionCard({ emoji, color, bg, title, desc, children }) {
   );
 }
 
-/* ── Row with toggle ───────────────────────── */
 function ToggleRow({ label, desc, checked, onChange }) {
   return (
     <div className="settings-row">
@@ -120,9 +115,6 @@ function ToggleRow({ label, desc, checked, onChange }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SECTION: Profile
-═══════════════════════════════════════════ */
 function ProfileSection({ role, userName }) {
   const [saved, setSaved] = useState(false);
   const [avatarColor, setAvatarColor] = useState('#1150c0');
@@ -145,7 +137,7 @@ function ProfileSection({ role, userName }) {
 
   return (
     <div className="settings-card">
-      {/* Avatar Section */}
+
       <div className="profile-avatar-section">
         <div className="profile-avatar-big" style={{ background: `linear-gradient(135deg, ${avatarColor}, ${avatarColor}99)` }}>
           {initials}
@@ -208,9 +200,6 @@ function ProfileSection({ role, userName }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SECTION: Appearance
-═══════════════════════════════════════════ */
 function AppearanceSection({ theme, setTheme }) {
   const [accent, setAccent]     = useState('#1150c0');
   const [fontSize, setFontSize] = useState('normal');
@@ -225,7 +214,7 @@ function AppearanceSection({ theme, setTheme }) {
 
   return (
     <>
-      {/* Theme */}
+
       <SectionCard emoji="🖥️" color="#8b5cf6" bg="#f5f3ff" title="Theme" desc="Choose how the dashboard looks">
         <div className="theme-grid">
           {themes.map(t => (
@@ -252,7 +241,6 @@ function AppearanceSection({ theme, setTheme }) {
         </div>
       </SectionCard>
 
-      {/* Accent Color */}
       <SectionCard emoji="🎨" color="#ec4899" bg="#fdf2f8" title="Accent Color" desc="Pick your dashboard highlight color">
         <div className="accent-grid">
           {accentColors.map(a => (
@@ -267,7 +255,6 @@ function AppearanceSection({ theme, setTheme }) {
         </div>
       </SectionCard>
 
-      {/* Font Size */}
       <SectionCard emoji="🔡" color="#0891b2" bg="#ecfeff" title="Font Size" desc="Adjust text size across the dashboard">
         <div className="font-size-options">
           {[
@@ -296,9 +283,6 @@ function AppearanceSection({ theme, setTheme }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SECTION: Notifications
-═══════════════════════════════════════════ */
 function NotificationsSection() {
   const [saved, setSaved] = useState(false);
   const [prefs, setPrefs] = useState({
@@ -339,9 +323,6 @@ function NotificationsSection() {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SECTION: Privacy
-═══════════════════════════════════════════ */
 function PrivacySection() {
   const [saved, setSaved] = useState(false);
   const [prefs, setPrefs] = useState({
@@ -380,9 +361,6 @@ function PrivacySection() {
   );
 }
 
-/* ═══════════════════════════════════════════
-   SECTION: Account
-═══════════════════════════════════════════ */
 function AccountSection({ onLogout }) {
   const [saved, setSaved]       = useState(false);
   const [showPass, setShowPass] = useState({ cur: false, new: false, con: false });
@@ -413,7 +391,7 @@ function AccountSection({ onLogout }) {
 
   return (
     <>
-      {/* Change Password */}
+
       <SectionCard emoji="🔑" color="#ef4444" bg="#fef2f2" title="Change Password" desc="Update your login password">
         {passError && (
           <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10,
@@ -445,7 +423,6 @@ function AccountSection({ onLogout }) {
         <SaveBtn onClick={handleSave} saved={saved} />
       </SectionCard>
 
-      {/* Session & Danger */}
       <SectionCard emoji="⚙️" color="#6b7280" bg="#f3f4f6" title="Session & Account" desc="Manage your active sessions">
         <div className="danger-zone">
           <div className="danger-zone-label">
@@ -466,9 +443,6 @@ function AccountSection({ onLogout }) {
   );
 }
 
-/* ═══════════════════════════════════════════
-   MAIN SETTINGS COMPONENT
-═══════════════════════════════════════════ */
 function Settings({ role = 'student', userName = 'Mujtaba Khan', onLogout }) {
   const [activeSection, setActiveSection] = useState('appearance');
   const [theme, setTheme]                 = useState(() => localStorage.getItem('titan-theme') || 'light');
@@ -494,7 +468,6 @@ function Settings({ role = 'student', userName = 'Mujtaba Khan', onLogout }) {
 
       <div className="settings-body">
 
-        {/* ── Left Nav ── */}
         <nav className="settings-nav">
           {navItems.map(item => (
             <button
@@ -508,7 +481,6 @@ function Settings({ role = 'student', userName = 'Mujtaba Khan', onLogout }) {
           ))}
         </nav>
 
-        {/* ── Content ── */}
         <div className="settings-content" key={activeSection}>
           {activeSection === 'appearance' && (
             <AppearanceSection theme={theme} setTheme={setTheme} />

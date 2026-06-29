@@ -11,7 +11,6 @@ import {
 } from 'react-icons/fi';
 import '../styles/profile.css';
 
-/* Role-based profile data */
 const profiles = {
   student: {
     name: 'Mujtaba Khan',
@@ -70,7 +69,7 @@ function Profile({ role = 'student' }) {
 
   return (
     <div className="profile-page">
-      {/* Banner header */}
+
       <div className="profile-banner">
         <div className="profile-banner-overlay" />
         <div className="profile-banner-brand">
@@ -80,7 +79,7 @@ function Profile({ role = 'student' }) {
       </div>
 
       <div className="profile-grid">
-        {/* Left: identity card */}
+
         <aside className="profile-id-card">
           <div className="profile-id-avatar">{p.initials}</div>
           <h2 className="profile-id-name">{p.name}</h2>
@@ -97,7 +96,6 @@ function Profile({ role = 'student' }) {
           </button>
         </aside>
 
-        {/* Right: stats + details */}
         <section className="profile-main">
           <div className="profile-stats">
             {p.stats.map((s) => (

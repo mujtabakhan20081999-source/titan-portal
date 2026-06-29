@@ -1,12 +1,9 @@
-/* ── Progress Page ─────────────────────────────── */
 .progress-page {
   padding: 24px 30px 36px;
   display: flex;
   flex-direction: column;
   gap: 22px;
 }
-
-/* Breadcrumb + Feedback row */
 .prog-topbar {
   display: flex;
   align-items: center;
@@ -61,8 +58,6 @@
   background: rgba(243, 198, 35, 0.1);
   box-shadow: 0 8px 20px rgba(16, 55, 92, 0.1);
 }
-
-/* Stat cards row */
 .prog-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -116,8 +111,6 @@
 .prog-stat-icon.total     { background: rgba(22, 163, 74, 0.12);  color: #16a34a; }
 .prog-stat-icon.completed { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
 .prog-stat-icon.pending   { background: rgba(235, 131, 23, 0.14); color: var(--primary-strong); }
-
-/* Module list */
 .prog-modules {
   display: flex;
   flex-direction: column;
@@ -192,8 +185,6 @@
 }
 
 .prog-module.open .prog-chevron { transform: rotate(180deg); }
-
-/* Circular ring */
 .prog-ring { position: relative; width: 54px; height: 54px; }
 
 .prog-ring svg { transform: rotate(-90deg); }
@@ -215,8 +206,6 @@
   font-weight: 800;
   color: var(--text);
 }
-
-/* Expandable topics */
 .prog-module-body {
   padding: 0 22px 18px 76px;
   display: flex;

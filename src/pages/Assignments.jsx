@@ -86,7 +86,7 @@ function Assignments() {
 
   return (
     <div className="assignments-page">
-      {/* Top bar */}
+
       <header className="asgn-header">
         <div className="asgn-header-left">
           <h1>Assignments</h1>
@@ -120,7 +120,6 @@ function Assignments() {
         </div>
       </header>
 
-      {/* Filter tabs */}
       <div className="asgn-tabs">
         <button
           className={`asgn-tab-btn${filter === 'All' ? ' active' : ''}`}
@@ -142,7 +141,6 @@ function Assignments() {
         </button>
       </div>
 
-      {/* Cards */}
       <div className="asgn-list">
         {filteredData.map((item) => (
           <div className="asgn-card" key={item.id}>

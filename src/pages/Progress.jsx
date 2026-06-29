@@ -102,7 +102,7 @@ function Progress() {
 
   return (
     <div className="progress-page">
-      {/* SVG gradient definition (shared by all rings) */}
+
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           <linearGradient id="progGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -112,7 +112,6 @@ function Progress() {
         </defs>
       </svg>
 
-      {/* Breadcrumb + Feedback */}
       <div className="prog-topbar">
         <nav className="prog-breadcrumb">
           <span className="crumb"><FiHome size={16} /> Home</span>
@@ -126,7 +125,6 @@ function Progress() {
         </button>
       </div>
 
-      {/* Stat cards */}
       <div className="prog-stats">
         <div className="prog-stat-card">
           <div className="prog-stat-text">
@@ -151,7 +149,6 @@ function Progress() {
         </div>
       </div>
 
-      {/* Module list */}
       <div className="prog-modules">
         {modules.map((m, i) => {
           const percent = pct(m.completed, m.total);
