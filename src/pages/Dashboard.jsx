@@ -1,10 +1,10 @@
 import { CheckCircle, ClipboardList, BookOpen, Calendar } from 'lucide-react';
-import StatsCard from '../components/StatsCard';
-import AttendanceChart from '../components/AttendanceChart';
-import RecentAssignments from '../components/RecentAssignments';
-import UpcomingQuizzes from '../components/UpcomingQuizzes';
-import CourseProgress from '../components/CourseProgress';
-import TopBar from '../components/TopBar';
+import StatsCard from '../components/dashboard/StatsCard';
+import AttendanceChart from '../components/dashboard/AttendanceChart';
+import RecentAssignments from '../components/dashboard/RecentAssignments';
+import UpcomingQuizzes from '../components/dashboard/UpcomingQuizzes';
+import CourseProgress from '../components/dashboard/CourseProgress';
+import TopBar from '../components/layout/TopBar';
 
 function Dashboard() {
   return (

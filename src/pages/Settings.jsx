@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import TopBar from '../components/TopBar';
+import TopBar from '../components/layout/TopBar';
 import '../styles/settings.css';
 
 const icons = {

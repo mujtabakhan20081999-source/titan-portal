@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import logoTitan from '../assets/TITAN LOGO without BG.png';
+import logoTitan from '../../assets/TITAN LOGO without BG.png';
 import {
   FiMenu,
   FiHome,
@@ -9,6 +9,7 @@ import {
   FiBarChart2,
   FiCalendar,
   FiTrendingUp,
+  FiCreditCard,
   FiUser,
   FiSettings,
   FiLogOut,
@@ -19,6 +20,7 @@ const studentMenuItems = [
   { icon: <FiClipboard />,  label: 'Assignments', path: '/assignments' },
   { icon: <FiFileText />,   label: 'Quizzes',     path: '/quizzes' },
   { icon: <FiTrendingUp />, label: 'Progress',    path: '/progress' },
+  { icon: <FiCreditCard />, label: 'Payment',     path: '/payment' },
   { icon: <FiUser />,       label: 'Profile',     path: '/profile' },
   { icon: <FiSettings />,   label: 'Settings',    path: '/settings' },
 ];

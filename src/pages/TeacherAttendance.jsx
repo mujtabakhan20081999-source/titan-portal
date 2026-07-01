@@ -4,7 +4,7 @@ import {
   CheckCircle, XCircle, AlertCircle, BookOpen,
   ClipboardList, HelpCircle, BarChart2,
 } from 'lucide-react';
-import TopBar from '../components/TopBar';
+import TopBar from '../components/layout/TopBar';
 
 const studentsData = [
   { id: 1,  name: 'Abdul Jabbar',       roll: '477526', email: 'abjabbargopang@gmail.com',    status: 'ENROLLED', attendance: 92, course: 'MWAD' },

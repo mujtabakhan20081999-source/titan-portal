@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiBell, FiSearch, FiChevronDown, FiUser, FiLogOut } from 'react-icons/fi';
-import { AuthContext } from '../auth';
+import { AuthContext } from '../../context/AuthContext';
 
 const notificationsData = [
   {

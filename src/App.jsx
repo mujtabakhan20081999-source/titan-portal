@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthContext } from './auth';
+import { AuthContext } from './context/AuthContext';
 import Login from './pages/Login';
-import Sidebar from './components/sidebar';
+import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import TeacherAttendance from './pages/TeacherAttendance';
 import Assignments from './pages/Assignments';
 import Progress from './pages/Progress';
 import MyCourses from './pages/MyCourses';
+import Payment from './pages/Payment';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
-import Calendar from '../titan-dashboard/src/component/Calendar';
-import Quiz from '../titan-dashboard/src/component/Quiz';
+import AdminLogin from './pages/AdminLogin';
+import AdminPanel from './pages/AdminPanel';
+import Calendar from './components/features/Calendar';
+import Quiz from './components/features/Quiz';
 
 function AppShell({ user, onLogout }) {
   const userName = user.role === 'teacher' ? 'Sir Yasir Ali' : 'Mujtaba Khan';
@@ -28,6 +31,7 @@ function AppShell({ user, onLogout }) {
           />
           <Route path="/assignments" element={<Assignments />} />
           <Route path="/progress" element={<Progress />} />
+          <Route path="/payment" element={<Payment />} />
           <Route path="/attendance" element={<TeacherAttendance />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/quizzes" element={<Quiz />} />
@@ -45,6 +49,7 @@ function AppShell({ user, onLogout }) {
 
 function App() {
   const [user, setUser] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
 
   const handleLogin = (isTeacher) => {
     setUser({ role: isTeacher ? 'teacher' : 'student' });
@@ -54,6 +59,22 @@ function App() {
     <BrowserRouter>
       <AuthContext.Provider value={{ logout: () => setUser(null) }}>
       <Routes>
+        <Route
+          path="/admin"
+          element={
+            adminUser
+              ? <Navigate to="/admin/panel" replace />
+              : <AdminLogin onLogin={(role) => setAdminUser({ role })} />
+          }
+        />
+        <Route
+          path="/admin/panel"
+          element={
+            adminUser
+              ? <AdminPanel admin={adminUser} onLogout={() => setAdminUser(null)} />
+              : <Navigate to="/admin" replace />
+          }
+        />
         <Route
           path="/login"
           element={

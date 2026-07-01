@@ -1,5 +1,7 @@
-import { BookOpen, Users, ClipboardList, Calendar, Clock, User, CalendarDays } from 'lucide-react';
-import TopBar from '../components/TopBar';
+import { useState } from 'react';
+import { BookOpen, Users, ClipboardList, Calendar, Clock, User, CalendarDays, ChevronRight } from 'lucide-react';
+import TopBar from '../components/layout/TopBar';
+import TeacherCourseDetail from '../components/dashboard/TeacherCourseDetail';
 
 const courses = [
   {
@@ -127,18 +129,30 @@ function StatBox({ icon: Icon, value, label, iconBg, iconColor }) {
   );
 }
 
-function CourseCard({ course }) {
+function CourseCard({ course, onOpen }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div style={{
-      background: course.bg,
-      border: `1.5px solid ${course.border}`,
-      borderRadius: 16,
-      padding: '20px 22px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 14,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-    }}>
+    <div
+      onClick={onOpen}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      style={{
+        background: course.bg,
+        border: `1.5px solid ${course.border}`,
+        borderRadius: 16,
+        padding: '20px 22px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        cursor: 'pointer',
+        boxShadow: hover ? '0 10px 24px rgba(0,0,0,0.12)' : '0 4px 12px rgba(0,0,0,0.05)',
+        transform: hover ? 'translateY(-3px)' : 'none',
+        transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+      }}
+    >
 
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -192,11 +206,27 @@ function CourseCard({ course }) {
           <span>Started On: {course.started}</span>
         </div>
       </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginTop: 2, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.08)',
+        fontSize: 13, fontWeight: 700, color: course.titleColor,
+      }}>
+        <span>View Students & Manage</span>
+        <ChevronRight size={16} />
+      </div>
     </div>
   );
 }
 
 function TeacherDashboard() {
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  const openCourse = (course) => {
+    const code = course.name.toLowerCase().includes('modern web') ? 'MWAD' : 'LGAL';
+    setSelectedCourse({ ...course, code });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <TopBar
@@ -206,6 +236,11 @@ function TeacherDashboard() {
         pageSubtitle="Manage your courses, track student progress, and stay on top of your teaching schedule."
       />
 
+      {selectedCourse ? (
+        <div className="page-body" style={{ gap: 24 }}>
+          <TeacherCourseDetail course={selectedCourse} onBack={() => setSelectedCourse(null)} />
+        </div>
+      ) : (
       <div className="page-body" style={{ gap: 24 }}>
 
         <div className="flex-row-responsive" style={{ gap: 20, alignItems: 'stretch' }}>
@@ -250,12 +285,13 @@ function TeacherDashboard() {
           </h2>
           <div className="grid-2">
             {courses.map((c) => (
-              <CourseCard key={c.id} course={c} />
+              <CourseCard key={c.id} course={c} onOpen={() => openCourse(c)} />
             ))}
           </div>
         </div>
 
       </div>
+      )}
     </div>
   );
 }
