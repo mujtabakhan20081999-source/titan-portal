@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopBar from '../components/admin/AdminTopBar';
+import AdminSupport from '../components/admin/AdminSupport';
 import '../styles/admin.css';
 
 /* ── Data (mock) ─────────────────────────────────────────────────────── */
@@ -135,12 +136,17 @@ function AdminPanel({ admin, onLogout }) {
 
       <div className="admin-main">
         <AdminTopBar
-          title="Dashboard"
-          subtitle={`Welcome back, ${roleLabel}!`}
+          title={active === 'Support' ? 'Support' : 'Dashboard'}
+          subtitle={active === 'Support' ? 'Help & assistance center' : `Welcome back, ${roleLabel}!`}
           onMenu={() => setSidebarOpen(true)}
           onLogout={onLogout}
         />
 
+        {active === 'Support' ? (
+          <div className="admin-content">
+            <AdminSupport />
+          </div>
+        ) : (
         <div className="admin-content">
 
           {/* Stat cards */}
@@ -325,6 +331,7 @@ function AdminPanel({ admin, onLogout }) {
           </div>
 
         </div>
+        )}
       </div>
     </div>
   );

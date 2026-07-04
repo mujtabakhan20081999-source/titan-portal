@@ -11,7 +11,6 @@ const DEMO = {
   subadmin: { email: 'subadmin@titan.edu', password: 'SubAdmin@2026' },
 };
 
-/* ── Flat desk illustration in the TITAN theme colors ──────────────────── */
 function AdminDeskIllustration() {
   return (
     <svg className="adm-illus-svg" viewBox="0 0 300 260" fill="none" xmlns="http://www.w3.org/2000/svg">
