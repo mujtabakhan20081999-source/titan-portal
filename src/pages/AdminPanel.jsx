@@ -7,6 +7,7 @@ import {
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopBar from '../components/admin/AdminTopBar';
 import AdminSupport from '../components/admin/AdminSupport';
+import AdminReports from '../components/admin/AdminReports';
 import '../styles/admin.css';
 
 /* ── Data (mock) ─────────────────────────────────────────────────────── */
@@ -146,6 +147,8 @@ function AdminPanel({ admin, onLogout }) {
           <div className="admin-content">
             <AdminSupport />
           </div>
+        ) : active === 'Reports' ? (
+          <AdminReports />
         ) : (
         <div className="admin-content">
 

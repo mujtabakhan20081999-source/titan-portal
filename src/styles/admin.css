@@ -323,6 +323,32 @@
 .admin-content > *:nth-child(4) { animation-delay: 0.26s; }
 .admin-content > *:nth-child(5) { animation-delay: 0.34s; }
 
+/* ── Reports page ── */
+.areport-page { animation: fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+.areport-card { transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+.areport-card:hover { transform: translateY(-7px); box-shadow: 0 16px 34px rgba(10,61,145,0.14); border-color: #d5e0f2; }
+.areport-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.areport-kpi { background: #fff; border: 1px solid #e8edf4; border-radius: 14px; padding: 16px 16px 14px; box-shadow: 0 3px 10px rgba(10,61,145,0.04); transition: transform 0.22s ease, box-shadow 0.22s ease; }
+.areport-kpi:hover { transform: translateY(-4px); box-shadow: 0 12px 26px rgba(10,61,145,0.10); }
+.areport-kpi-title { font-size: 12px; font-weight: 700; color: #5F7A9E; }
+.areport-kpi-value { font-size: 24px; font-weight: 900; color: #10375C; margin-top: 6px; letter-spacing: -0.02em; }
+.areport-kpi-sub { font-size: 11.5px; color: #7286a3; margin-top: 2px; font-weight: 600; }
+.areport-kpi-gold { background: linear-gradient(135deg, rgba(243,198,35,0.22), rgba(224,166,0,0.12)); border-color: rgba(243,198,35,0.6); }
+
+.areport-input { transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+.areport-input:hover { border-color: #b9c8e2; background: #fff; }
+
+.areport-insights { display: flex; flex-direction: column; gap: 10px; }
+.areport-insight { display: flex; align-items: center; gap: 12px; padding: 12px 12px; border-radius: 12px; border: 1px solid #eef2f9; background: #fbfcff; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+.areport-insight:hover { transform: translateX(4px); border-color: #c9d8f0; box-shadow: 0 12px 26px rgba(10,61,145,0.08); }
+.areport-insight-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; box-shadow: 0 8px 18px rgba(10,61,145,0.18); }
+.areport-insight-title { font-size: 13.5px; font-weight: 800; color: #10375C; }
+.areport-insight-sub { font-size: 11.5px; color: #7286a3; margin-top: 2px; font-weight: 600; }
+.areport-insight-pill { margin-left: auto; font-size: 10.5px; font-weight: 900; color: #10375C; padding: 6px 10px; border-radius: 999px; background: rgba(10,61,145,0.06); border: 1px solid rgba(10,61,145,0.14); }
+
+.areport-row { transition: background 0.18s ease, box-shadow 0.18s ease; }
+.areport-row:hover { background: #f6f9ff; box-shadow: inset 3px 0 0 rgba(10,61,145,0.95); }
+
 /* ── Stat cards ── */
 .astat {
   animation: fadeInUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
