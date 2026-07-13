@@ -8,9 +8,9 @@ import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopBar from '../components/admin/AdminTopBar';
 import AdminSupport from '../components/admin/AdminSupport';
 import AdminReports from '../components/admin/AdminReports';
+import Trainers from './Trainers';
 import '../styles/admin.css';
 
-/* ── Data (mock) ─────────────────────────────────────────────────────── */
 const stats = [
   { icon: Users,         value: '4,658', label: 'Total Students',    sub: 'All Time',          bg: '#dbeafe', color: '#2563eb' },
   { icon: GraduationCap, value: '2,945', label: 'Enrolled Students', sub: 'Currently Active',  bg: '#dcfce7', color: '#16a34a' },
@@ -60,7 +60,6 @@ const filters = [
   { label: 'Payment Status', value: 'All Payment Statuses' },
 ];
 
-/* ── Donut chart (pure SVG) ──────────────────────────────────────────── */
 function DonutChart({ data, total }) {
   let acc = 0;
   return (
@@ -118,6 +117,9 @@ function MiniCard({ icon: Icon, iconColor, iconBg, title, sub, items }) {
 function AdminPanel({ admin, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [active, setActive] = useState('Dashboard');
+
+  // Sidebar labels include: Dashboard, Students, Attendance, Administration (Slots), Trainers, Updation, Profile, Trainer Portal, Student Portal, Reports, Settings, Audit Logs, Support, Permissions
+
   const roleLabel = admin?.role === 'subadmin' ? 'Sub Admin' : 'Super Admin';
 
   const totalStudents = campuses.reduce((s, c) => s + c.value, 0);
@@ -136,12 +138,17 @@ function AdminPanel({ admin, onLogout }) {
       <div className={`admin-backdrop${sidebarOpen ? ' show' : ''}`} onClick={() => setSidebarOpen(false)} />
 
       <div className="admin-main">
-        <AdminTopBar
-          title={active === 'Support' ? 'Support' : 'Dashboard'}
-          subtitle={active === 'Support' ? 'Help & assistance center' : `Welcome back, ${roleLabel}!`}
-          onMenu={() => setSidebarOpen(true)}
-          onLogout={onLogout}
-        />
+        {active !== 'Trainers' && active !== 'Reports' && (
+          <AdminTopBar
+            title={active === 'Support' ? 'Support' : 'Dashboard'}
+            subtitle={active === 'Support' ? 'Help & assistance center' : `Welcome back, ${roleLabel}!`}
+            onMenu={() => setSidebarOpen(true)}
+            onLogout={onLogout}
+          />
+        )}
+
+
+
 
         {active === 'Support' ? (
           <div className="admin-content">
@@ -149,8 +156,13 @@ function AdminPanel({ admin, onLogout }) {
           </div>
         ) : active === 'Reports' ? (
           <AdminReports />
+        ) : active === 'Trainers' ? (
+          <div className="admin-content">
+            <Trainers />
+          </div>
         ) : (
         <div className="admin-content">
+
 
           {/* Stat cards */}
           <div className="admin-stats">

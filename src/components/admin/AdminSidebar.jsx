@@ -39,6 +39,8 @@ const sections = [
 ];
 
 function AdminSidebar({ open, onClose, active = 'Dashboard', onSelect }) {
+  // Active label comes from AdminPanel; keep it in sync with admin routes.
+
   const [collapsed, setCollapsed] = useState(false);
 
   return (
