@@ -6,19 +6,9 @@ import TopBar from '../components/layout/TopBar';
 
 /* ── Mock fee / voucher data ────────────────────────────────────────────── */
 const initialFees = [
-  { id: 1,  name: 'Abdul Jabbar',       roll: '477526', voucher: 'TITAN-2026-0001', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
+  { id: 1,  name: 'Mujtaba khan',       roll: '477526', voucher: 'TITAN-2026-0001', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
   { id: 2,  name: 'Abdul Rafay',        roll: '469955', voucher: 'TITAN-2026-0002', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-  { id: 3,  name: 'Abdul Salam Shaikh', roll: '475436', voucher: 'TITAN-2026-0003', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
-  { id: 4,  name: 'Abdullah Khan',      roll: '470278', voucher: 'TITAN-2026-0004', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-  { id: 5,  name: 'Aisha Siddiqui',     roll: '481234', voucher: 'TITAN-2026-0005', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
-  { id: 6,  name: 'Ali Hassan',         roll: '483421', voucher: 'TITAN-2026-0006', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-  { id: 7,  name: 'Amna Fatima',        roll: '484567', voucher: 'TITAN-2026-0007', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
-  { id: 8,  name: 'Bilal Ahmed',        roll: '485678', voucher: 'TITAN-2026-0008', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-  { id: 9,  name: 'Faisal Mehmood',     roll: '486789', voucher: 'TITAN-2026-0009', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
-  { id: 10, name: 'Fatima Noor',        roll: '487890', voucher: 'TITAN-2026-0010', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-  { id: 11, name: 'Hamid Raza',         roll: '488901', voucher: 'TITAN-2026-0011', amount: 5000, dueDate: '10 Jul 2026', status: 'PAID'   },
-  { id: 12, name: 'Hina Malik',         roll: '490123', voucher: 'TITAN-2026-0012', amount: 5000, dueDate: '10 Jul 2026', status: 'UNPAID' },
-];
+  ];
 
 function Avatar({ name, size = 34 }) {
   const initials = name.split(' ').slice(0, 2).map((w) => w[0].toUpperCase()).join('');
@@ -81,7 +71,17 @@ function StatCard({ icon, bg, value, label, sub }) {
 }
 
 function Payment() {
-  const [fees, setFees] = useState(initialFees);
+  // Student ke payment page par sirf apni info show hogi (demo: Mujtaba Khan)
+  const studentName = 'Mujtaba Khan';
+  const visibleFeesInitial = initialFees.filter((f) => f.name === studentName);
+
+  // 1 month fee = 5000, amount ko months ke hisaab se convert karein.
+  const monthFee = 5000;
+  const monthFromAmount = (amount) => Math.max(0, Math.round(amount / monthFee));
+
+  const [fees, setFees] = useState(
+    visibleFeesInitial.length ? visibleFeesInitial : initialFees.slice(0, 1)
+  );
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All'); // All | PAID | UNPAID
 
@@ -116,8 +116,7 @@ function Payment() {
       <div className="page-body">
 
         {/* Summary */}
-        <div className="ta-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-          <StatCard icon={<Users size={22} color="#2563eb" />}        bg="#dbeafe" value={fees.length}   label="Total Students" sub="This Batch" />
+        <div className="ta-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
           <StatCard icon={<CheckCircle size={22} color="#16a34a" />}  bg="#dcfce7" value={paidCount}     label="Paid"           sub="Fee Cleared" />
           <StatCard icon={<AlertCircle size={22} color="#dc2626" />}  bg="#fee2e2" value={unpaidCount}   label="Unpaid"         sub="Pending Dues" />
           <StatCard icon={<Wallet size={22} color="#9333ea" />}       bg="#f3e8ff" value={fmt(collected)} label="Collected"     sub="Total Received" />
