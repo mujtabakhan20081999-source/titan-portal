@@ -551,7 +551,7 @@
 @media (max-width: 640px) {
   .admin-content { padding: 14px 12px 24px; gap: 14px; }
   .admin-topbar { padding: 11px 14px; gap: 10px; }
-  .admin-search { display: none; }
+  .admin-topbar .admin-search { display: none; }
   .admin-profile-info { display: none; }
   .admin-4col { grid-template-columns: 1fr; }
   .admin-topbar-title h1 { font-size: 17px; }

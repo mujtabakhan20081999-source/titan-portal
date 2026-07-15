@@ -24,11 +24,35 @@ import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopBar from '../components/admin/AdminTopBar';
 import AdminSupport from '../components/admin/AdminSupport';
 import AdminReports from '../components/admin/AdminReports';
+import AdminAttendance from '../components/admin/AdminAttendance';
+import AdminSlots from '../components/admin/AdminSlots';
+import AdminUpdation from '../components/admin/AdminUpdation';
+import AdminProfile from '../components/admin/AdminProfile';
+import AdminTrainerPortal from '../components/admin/AdminTrainerPortal';
+import AdminStudentPortal from '../components/admin/AdminStudentPortal';
+import AdminSettings from '../components/admin/AdminSettings';
+import AdminPermissions from '../components/admin/AdminPermissions';
 import Trainers from './Trainers';
 import Students from './Students';
 import AuditLogs from './AuditLogs';
 
 import '../styles/admin.css';
+
+// Topbar copy per sidebar page. Dashboard's subtitle is filled in at render time.
+const PAGE_META = {
+  Dashboard: { title: 'Dashboard', subtitle: '' },
+  Students: { title: 'Students', subtitle: 'All campuses student directory' },
+  Attendance: { title: 'Attendance', subtitle: 'Mark & review student attendance' },
+  'Administration (Slots)': { title: 'Administration', subtitle: 'Class slots & schedules' },
+  Updation: { title: 'Updation', subtitle: 'Bulk update student status' },
+  Profile: { title: 'My Profile', subtitle: 'Your profile & permissions' },
+  'Trainer Portal': { title: 'Trainer Portal', subtitle: 'Trainer overview' },
+  'Student Portal': { title: 'Student Portal', subtitle: 'Student dashboard' },
+  Settings: { title: 'Settings', subtitle: 'System configuration' },
+  'Audit Logs': { title: 'Audit Logs', subtitle: 'System activity log' },
+  Support: { title: 'Support', subtitle: 'Help & assistance center' },
+  Permissions: { title: 'Permissions', subtitle: 'Manage role permissions' },
+};
 
 const stats = [
   {
@@ -256,15 +280,23 @@ function AdminPanel({ admin, onLogout }) {
 
   const payBadge = { Paid: 'badge-green', Pending: 'badge-amber', 'Not Generated': 'badge-grey' };
 
-  const renderBody = () => {
-    if (active === 'Support') {
-      return (
-        <div className="admin-content">
-          <AdminSupport />
-        </div>
-      );
-    }
+  // Pages that render a self-contained component inside the standard content wrapper.
+  const PAGE_COMPONENTS = {
+    Students: <Students />,
+    Attendance: <AdminAttendance />,
+    'Administration (Slots)': <AdminSlots />,
+    Updation: <AdminUpdation />,
+    Profile: <AdminProfile admin={admin} />,
+    'Trainer Portal': <AdminTrainerPortal />,
+    'Student Portal': <AdminStudentPortal />,
+    Settings: <AdminSettings />,
+    'Audit Logs': <AuditLogs admin={admin} />,
+    Support: <AdminSupport />,
+    Permissions: <AdminPermissions />,
+  };
 
+  const renderBody = () => {
+    // Reports & Trainers manage their own headers (topbar hidden below).
     if (active === 'Reports') {
       return <AdminReports />;
     }
@@ -277,20 +309,8 @@ function AdminPanel({ admin, onLogout }) {
       );
     }
 
-    if (active === 'Students') {
-      return (
-        <div className="admin-content">
-          <Students />
-        </div>
-      );
-    }
-
-    if (active === 'Audit Logs') {
-      return (
-        <div className="admin-content">
-          <AuditLogs admin={admin} />
-        </div>
-      );
+    if (PAGE_COMPONENTS[active]) {
+      return <div className="admin-content">{PAGE_COMPONENTS[active]}</div>;
     }
 
     return (
@@ -534,23 +554,11 @@ function AdminPanel({ admin, onLogout }) {
       <div className="admin-main">
         {active !== 'Trainers' && active !== 'Reports' && (
           <AdminTopBar
-            title={
-              active === 'Support'
-                ? 'Support'
-                : active === 'Audit Logs'
-                  ? 'Audit Logs'
-                  : active === 'Students'
-                    ? 'Students'
-                    : 'Dashboard'
-            }
+            title={PAGE_META[active]?.title || 'Dashboard'}
             subtitle={
-              active === 'Support'
-                ? 'Help & assistance center'
-                : active === 'Audit Logs'
-                  ? 'System activity log'
-                  : active === 'Students'
-                    ? 'All campuses student directory'
-                    : `Welcome back, ${roleLabel}!`
+              active === 'Dashboard' || !PAGE_META[active]
+                ? `Welcome back, ${roleLabel}!`
+                : PAGE_META[active].subtitle
             }
             onMenu={() => setSidebarOpen(true)}
             onLogout={onLogout}
