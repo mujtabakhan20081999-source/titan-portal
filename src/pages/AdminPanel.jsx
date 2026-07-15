@@ -25,6 +25,7 @@ import AdminTopBar from '../components/admin/AdminTopBar';
 import AdminSupport from '../components/admin/AdminSupport';
 import AdminReports from '../components/admin/AdminReports';
 import Trainers from './Trainers';
+import Students from './Students';
 import AuditLogs from './AuditLogs';
 
 import '../styles/admin.css';
@@ -272,6 +273,14 @@ function AdminPanel({ admin, onLogout }) {
       return (
         <div className="admin-content">
           <Trainers />
+        </div>
+      );
+    }
+
+    if (active === 'Students') {
+      return (
+        <div className="admin-content">
+          <Students />
         </div>
       );
     }
@@ -525,13 +534,23 @@ function AdminPanel({ admin, onLogout }) {
       <div className="admin-main">
         {active !== 'Trainers' && active !== 'Reports' && (
           <AdminTopBar
-            title={active === 'Support' ? 'Support' : active === 'Audit Logs' ? 'Audit Logs' : 'Dashboard'}
+            title={
+              active === 'Support'
+                ? 'Support'
+                : active === 'Audit Logs'
+                  ? 'Audit Logs'
+                  : active === 'Students'
+                    ? 'Students'
+                    : 'Dashboard'
+            }
             subtitle={
               active === 'Support'
                 ? 'Help & assistance center'
                 : active === 'Audit Logs'
                   ? 'System activity log'
-                  : `Welcome back, ${roleLabel}!`
+                  : active === 'Students'
+                    ? 'All campuses student directory'
+                    : `Welcome back, ${roleLabel}!`
             }
             onMenu={() => setSidebarOpen(true)}
             onLogout={onLogout}

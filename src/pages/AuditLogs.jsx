@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Edit, Plus, Search, SlidersHorizontal } from 'lucide-react';
+import { CalendarDays, Edit, Plus, Search } from 'lucide-react';
 
 import '../styles/admin.css';
 
@@ -99,12 +99,6 @@ export default function AuditLogs() {
 
   const [page, setPage] = useState(1);
   const pageSize = 8;
-
-  const loggedInAdmin = {
-    name: 'Super Admin',
-    email: 'admin@titan.com',
-    initials: 'SA',
-  };
 
   useEffect(() => {
     let alive = true;
@@ -216,44 +210,15 @@ export default function AuditLogs() {
       <SkeletonStyles />
 
       <div className="acard" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="acard-head" style={{ marginBottom: 0 }}>
-          <div>
-            <div className="acard-title" style={{ fontSize: 16 }}>
-              Audit Logs
-            </div>
-            <div style={{ fontSize: 12.5, color: '#7286a3', marginTop: 4, fontWeight: 600 }}>
-              System activity logs
-            </div>
-          </div>
-
-          <div className="acard-tools" style={{ alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <label className="admin-search" style={{ minWidth: 280 }}>
-                <Search size={16} color="#5F7A9E" />
-                <input
-                  type="search"
-                  placeholder="Search user, action, details..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </label>
-
-              <button className="btn-ghost" style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                <SlidersHorizontal size={15} /> Filters
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 8 }}>
-              <div className="admin-profile" style={{ cursor: 'default' }}>
-                <div className="admin-profile-av">{loggedInAdmin.initials}</div>
-                <div className="admin-profile-info">
-                  <div className="admin-profile-name">{loggedInAdmin.name}</div>
-                  <div className="admin-profile-role">{loggedInAdmin.email}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <label className="admin-search" style={{ minWidth: 280, maxWidth: 420 }}>
+          <Search size={16} color="#5F7A9E" />
+          <input
+            type="search"
+            placeholder="Search user, action, details..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 0.9fr 0.9fr', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 220 }}>
