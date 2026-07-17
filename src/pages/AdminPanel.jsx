@@ -56,6 +56,7 @@ const PAGE_META = {
 
 const stats = [
   {
+    key: 'students',
     icon: Users,
     value: '4,658',
     label: 'Total Students',
@@ -64,6 +65,7 @@ const stats = [
     color: '#2563eb',
   },
   {
+    key: 'enrolled',
     icon: GraduationCap,
     value: '2,945',
     label: 'Enrolled Students',
@@ -72,6 +74,7 @@ const stats = [
     color: '#16a34a',
   },
   {
+    key: 'courses',
     icon: BookOpen,
     value: '56',
     label: 'Courses',
@@ -80,6 +83,7 @@ const stats = [
     color: '#7c3aed',
   },
   {
+    key: 'cities',
     icon: MapPin,
     value: '12',
     label: 'Cities',
@@ -88,6 +92,7 @@ const stats = [
     color: '#d97706',
   },
   {
+    key: 'campuses',
     icon: Building2,
     value: '24',
     label: 'Campuses',
@@ -96,6 +101,7 @@ const stats = [
     color: '#0891b2',
   },
   {
+    key: 'trainers',
     icon: UserCog,
     value: '142',
     label: 'Trainers',
@@ -104,6 +110,7 @@ const stats = [
     color: '#1150c0',
   },
   {
+    key: 'slots',
     icon: CalendarClock,
     value: '87',
     label: 'Active Slots',
@@ -112,6 +119,15 @@ const stats = [
     color: '#16a34a',
   },
 ];
+
+// Per-city figures shown when a sub-admin opens a single city's panel.
+const CITY_DATA = {
+  Sukkur:    { students: 1345, enrolled: 842, courses: 18, campuses: 6, trainers: 38, slots: 24 },
+  Karachi:   { students: 986,  enrolled: 607, courses: 15, campuses: 5, trainers: 32, slots: 19 },
+  Lahore:    { students: 754,  enrolled: 480, courses: 14, campuses: 4, trainers: 26, slots: 15 },
+  Islamabad: { students: 632,  enrolled: 399, courses: 12, campuses: 3, trainers: 22, slots: 12 },
+  Multan:    { students: 521,  enrolled: 318, courses: 10, campuses: 2, trainers: 18, slots: 10 },
+};
 
 const campuses = [
   { label: 'Sukkur Campus', value: 1345, color: '#0A3D91' },
@@ -270,12 +286,30 @@ function MiniCard({ icon: Icon, iconColor, iconBg, title, sub, items }) {
   );
 }
 
-function AdminPanel({ admin, onLogout }) {
+function AdminPanel({ admin, onLogout, onChangeCity }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [active, setActive] = useState('Dashboard');
 
   const roleLabel = admin?.role === 'subadmin' ? 'Sub Admin' : 'Super Admin';
-  const totalStudents = campuses.reduce((s, c) => s + c.value, 0);
+  const city = admin?.city || null;
+  const cityData = city ? CITY_DATA[city] : null;
+
+  // City-scoped stat cards for sub-admins; the global list for super admin.
+  const displayStats = stats
+    .filter((s) => !cityData || s.key !== 'cities')
+    .map((s) => (cityData && cityData[s.key] != null
+      ? { ...s, value: cityData[s.key].toLocaleString(), sub: `${city} Region` }
+      : s));
+
+  const donutCampuses = cityData
+    ? [
+        { label: `${city} Main Campus`, value: Math.round(cityData.students * 0.5), color: '#0A3D91' },
+        { label: `${city} City Campus`, value: Math.round(cityData.students * 0.3), color: '#2563eb' },
+        { label: `${city} North Campus`, value: cityData.students - Math.round(cityData.students * 0.5) - Math.round(cityData.students * 0.3), color: '#60a5fa' },
+      ]
+    : campuses;
+
+  const totalStudents = donutCampuses.reduce((s, c) => s + c.value, 0);
   const maxCourse = Math.max(...courses.map((c) => c.value));
 
   const payBadge = { Paid: 'badge-green', Pending: 'badge-amber', 'Not Generated': 'badge-grey' };
@@ -284,7 +318,7 @@ function AdminPanel({ admin, onLogout }) {
   const PAGE_COMPONENTS = {
     Students: <Students />,
     Attendance: <AdminAttendance />,
-    'Administration (Slots)': <AdminSlots />,
+    'Administration (Slots)': <AdminSlots city={city} />,
     Updation: <AdminUpdation />,
     Profile: <AdminProfile admin={admin} />,
     'Trainer Portal': <AdminTrainerPortal />,
@@ -316,7 +350,7 @@ function AdminPanel({ admin, onLogout }) {
     return (
       <div className="admin-content">
         <div className="admin-stats">
-          {stats.map((s) => {
+          {displayStats.map((s) => {
             const Icon = s.icon;
             return (
               <div className="astat" key={s.label}>
@@ -351,9 +385,9 @@ function AdminPanel({ admin, onLogout }) {
               <span style={{ fontSize: 12, color: '#7286a3' }}>Sort: High to Low</span>
             </div>
             <div className="donut-row">
-              <DonutChart data={campuses} total={totalStudents} />
+              <DonutChart data={donutCampuses} total={totalStudents} />
               <div className="donut-legend">
-                {campuses.map((c) => (
+                {donutCampuses.map((c) => (
                   <div className="donut-leg-item" key={c.label}>
                     <span className="donut-leg-dot" style={{ background: c.color }} />
                     {c.label}
@@ -557,9 +591,12 @@ function AdminPanel({ admin, onLogout }) {
             title={PAGE_META[active]?.title || 'Dashboard'}
             subtitle={
               active === 'Dashboard' || !PAGE_META[active]
-                ? `Welcome back, ${roleLabel}!`
+                ? `Welcome back, ${roleLabel}!${city ? ` Managing ${city} region.` : ''}`
                 : PAGE_META[active].subtitle
             }
+            roleLabel={roleLabel}
+            city={city}
+            onChangeCity={onChangeCity}
             onMenu={() => setSidebarOpen(true)}
             onLogout={onLogout}
           />

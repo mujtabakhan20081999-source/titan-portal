@@ -14,6 +14,8 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import AdminLogin from './pages/AdminLogin';
 import AdminPanel from './pages/AdminPanel';
+import SubAdminCities from './pages/SubAdminCities';
+import SubAdminPanel from './pages/SubAdminPanel';
 import Calendar from './components/features/Calendar';
 import Quiz from './components/features/Quiz';
 
@@ -50,9 +52,15 @@ function AppShell({ user, onLogout }) {
 function App() {
   const [user, setUser] = useState(null);
   const [adminUser, setAdminUser] = useState(null);
+  const [subAdminCity, setSubAdminCity] = useState(null);
 
   const handleLogin = (isTeacher) => {
     setUser({ role: isTeacher ? 'teacher' : 'student' });
+  };
+
+  const handleAdminLogout = () => {
+    setAdminUser(null);
+    setSubAdminCity(null);
   };
 
   return (
@@ -63,16 +71,37 @@ function App() {
           path="/admin"
           element={
             adminUser
-              ? <Navigate to="/admin/panel" replace />
-              : <AdminLogin onLogin={(role) => setAdminUser({ role })} />
+              ? <Navigate to={adminUser.role === 'subadmin' && !subAdminCity ? '/admin/cities' : '/admin/panel'} replace />
+              : <AdminLogin onLogin={(role) => { setAdminUser({ role }); setSubAdminCity(null); }} />
+          }
+        />
+        <Route
+          path="/admin/cities"
+          element={
+            !adminUser
+              ? <Navigate to="/admin" replace />
+              : adminUser.role !== 'subadmin'
+                ? <Navigate to="/admin/panel" replace />
+                : <SubAdminCities onSelect={(city) => setSubAdminCity(city)} onLogout={handleAdminLogout} />
           }
         />
         <Route
           path="/admin/panel"
           element={
-            adminUser
-              ? <AdminPanel admin={adminUser} onLogout={() => setAdminUser(null)} />
-              : <Navigate to="/admin" replace />
+            !adminUser
+              ? <Navigate to="/admin" replace />
+              : adminUser.role === 'subadmin' && !subAdminCity
+                ? <Navigate to="/admin/cities" replace />
+                : adminUser.role === 'subadmin'
+                  ? (
+                    <SubAdminPanel
+                      key={subAdminCity}
+                      city={subAdminCity}
+                      onLogout={handleAdminLogout}
+                      onChangeCity={() => setSubAdminCity(null)}
+                    />
+                  )
+                  : <AdminPanel admin={adminUser} onLogout={handleAdminLogout} />
           }
         />
         <Route

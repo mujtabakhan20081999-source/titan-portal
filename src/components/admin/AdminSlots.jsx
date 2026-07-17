@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Eye, Pencil, Trash2, X, CalendarClock } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, X, CalendarClock, MapPin } from 'lucide-react';
 
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
@@ -7,6 +7,7 @@ import '../../styles/admin-pages.css';
 const COURSES = ['Artificial Intelligence', 'Web Development', 'Python Programming', 'Data Science', 'Cyber Security', 'UI/UX Design', 'Graphic Design'];
 const TRAINERS = ['Ali Raza', 'Sana Khan', 'Usman Ali', 'Fatima Noor', 'Bilal Ahmed'];
 const CAMPUSES = ['Sukkur Campus', 'Karachi Campus', 'Lahore Campus', 'Islamabad Campus', 'Multan Campus'];
+const CITIES = CAMPUSES.map((c) => c.replace(' Campus', ''));
 
 const SEED = [
   { id: 'SLOT-001', course: 'Artificial Intelligence', trainer: 'Ali Raza', campus: 'Sukkur Campus', days: 'Mon, Wed, Fri', time: '09:00 AM - 11:00 AM', filled: 18, seats: 25, status: 'Open' },
@@ -21,10 +22,11 @@ const GRID = '104px 1.5fr 1.1fr 1.2fr 1.4fr 96px 92px 92px';
 
 const emptyForm = { course: COURSES[0], trainer: TRAINERS[0], campus: CAMPUSES[0], days: 'Mon, Wed, Fri', time: '09:00 AM - 11:00 AM', seats: 30 };
 
-export default function AdminSlots() {
+export default function AdminSlots({ city }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [cityFilter, setCityFilter] = useState(city || 'All Cities');
   const [courseFilter, setCourseFilter] = useState('All Courses');
   const [statusFilter, setStatusFilter] = useState('All');
   const [page, setPage] = useState(1);
@@ -40,24 +42,28 @@ export default function AdminSlots() {
     return () => clearTimeout(t);
   }, []);
 
+  useEffect(() => { setCityFilter(city || 'All Cities'); }, [city]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 2200); return () => clearTimeout(t); }, [toast]);
-  useEffect(() => { setPage(1); }, [search, courseFilter, statusFilter]);
+  useEffect(() => { setPage(1); }, [search, cityFilter, courseFilter, statusFilter]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter((r) => {
+      if (cityFilter !== 'All Cities' && r.campus !== `${cityFilter} Campus`) return false;
       if (courseFilter !== 'All Courses' && r.course !== courseFilter) return false;
       if (statusFilter !== 'All' && r.status !== statusFilter) return false;
       if (!q) return true;
       return r.id.toLowerCase().includes(q) || r.course.toLowerCase().includes(q) || r.trainer.toLowerCase().includes(q) || r.campus.toLowerCase().includes(q);
     });
-  }, [rows, search, courseFilter, statusFilter]);
+  }, [rows, search, cityFilter, courseFilter, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const paginated = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  const openAdd = () => { setForm(emptyForm); setModal({ mode: 'add' }); };
+  const campusOptions = city ? CAMPUSES.filter((c) => c === `${city} Campus`) : CAMPUSES;
+
+  const openAdd = () => { setForm(city ? { ...emptyForm, campus: `${city} Campus` } : emptyForm); setModal({ mode: 'add' }); };
   const openEdit = (r) => { setForm({ ...r }); setModal({ mode: 'edit', id: r.id }); };
 
   const save = () => {
@@ -82,7 +88,9 @@ export default function AdminSlots() {
         <div className="acard-head" style={{ padding: '18px 18px 14px', marginBottom: 0 }}>
           <div>
             <span className="acard-title" style={{ fontSize: 16 }}>Slots</span>
-            <div style={{ fontSize: 12.5, color: '#7286a3', marginTop: 3, fontWeight: 600 }}>Manage class slots and schedules</div>
+            <div style={{ fontSize: 12.5, color: '#7286a3', marginTop: 3, fontWeight: 600 }}>
+              {cityFilter === 'All Cities' ? 'Manage class slots and schedules' : `Showing slots for ${cityFilter}`}
+            </div>
           </div>
           <div className="acard-tools">
             <button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add Slot</button>
@@ -94,6 +102,19 @@ export default function AdminSlots() {
             <Search size={16} color="#5F7A9E" />
             <input type="search" placeholder="Search slot, course, trainer, campus…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </label>
+          {city ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 9, background: '#f0f5ff', border: '1px solid #cdd8ea', color: '#0A3D91', fontSize: 12.5, fontWeight: 700 }}>
+              <MapPin size={14} /> {city} City
+            </span>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MapPin size={16} color="#5F7A9E" />
+              <select className="afilter-select" style={{ width: 'auto', minWidth: 140 }} value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+                <option>All Cities</option>
+                {CITIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
           <select className="afilter-select" style={{ width: 'auto', minWidth: 170 }} value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
             <option>All Courses</option>
             {COURSES.map((c) => <option key={c}>{c}</option>)}
@@ -189,7 +210,7 @@ export default function AdminSlots() {
                     </div>
                     <div className="ap-field">
                       <label>Campus</label>
-                      <select value={form.campus} onChange={(e) => setForm({ ...form, campus: e.target.value })}>{CAMPUSES.map((c) => <option key={c}>{c}</option>)}</select>
+                      <select value={form.campus} onChange={(e) => setForm({ ...form, campus: e.target.value })}>{campusOptions.map((c) => <option key={c}>{c}</option>)}</select>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>

@@ -593,3 +593,23 @@
   .admin-profile-av { width: 34px; height: 34px; font-size: 12.5px; }
   .admin-nav-item { min-width: 60px; padding: 7px 6px; }
 }
+
+/* ── Sub-admin city chip (topbar) ────────────────────────────────────── */
+.admin-city-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 13px; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, #f4f7ff, #eaf1ff);
+  border: 1px solid #cdd8ea; color: #0A3D91;
+  font-size: 12.5px; font-weight: 700; font-family: 'Inter', sans-serif;
+  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+.admin-city-chip:hover {
+  background: linear-gradient(135deg, #1150c0, #0A3D91);
+  color: #fff; border-color: #0A3D91;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(10,61,145,0.25);
+}
+.admin-city-chip .chip-change {
+  font-size: 10px; font-weight: 800; opacity: 0.65;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
