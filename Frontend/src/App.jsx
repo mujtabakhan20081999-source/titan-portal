@@ -1,0 +1,153 @@
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthContext } from './context/AuthContext';
+import Login from './pages/Login';
+import Sidebar from './components/layout/Sidebar';
+import Dashboard from './pages/Dashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
+import TeacherAttendance from './pages/TeacherAttendance';
+import Assignments from './pages/Assignments';
+import Progress from './pages/Progress';
+import MyCourses from './pages/MyCourses';
+import Payment from './pages/Payment';
+import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import AdminLogin from './pages/AdminLogin';
+import AdminPanel from './pages/AdminPanel';
+import SubAdminCities from './pages/SubAdminCities';
+import SubAdminPanel from './pages/SubAdminPanel';
+import Calendar from './components/features/Calendar';
+import Quiz from './components/features/Quiz';
+
+function AppShell({ user, onLogout }) {
+  const userName = user.role === 'teacher' ? 'Sir Yasir Ali' : 'Mujtaba Khan';
+
+  return (
+    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh' }}>
+      <Sidebar onLogout={onLogout} role={user.role} />
+      <div className="main-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={user.role === 'teacher' ? <TeacherDashboard /> : <Dashboard />}
+          />
+          <Route path="/assignments" element={<Assignments />} />
+          <Route path="/progress" element={<Progress />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/attendance" element={<TeacherAttendance />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/quizzes" element={<Quiz />} />
+          <Route path="/profile" element={<Profile role={user.role} />} />
+          <Route
+            path="/settings"
+            element={<Settings role={user.role} userName={userName} onLogout={onLogout} />}
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('user'));
+      return ['student', 'teacher'].includes(savedUser?.role) ? savedUser : null;
+    } catch {
+      return null;
+    }
+  });
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('user'));
+      return ['superadmin', 'subadmin'].includes(savedUser?.role) ? savedUser : null;
+    } catch {
+      return null;
+    }
+  });
+  const [subAdminCity, setSubAdminCity] = useState(null);
+
+  const handleLogin = (loggedInUser) => setUser(loggedInUser);
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setAdminUser(null);
+    setSubAdminCity(null);
+  };
+
+  return (
+    <BrowserRouter>
+      <AuthContext.Provider value={{ logout: () => setUser(null) }}>
+      <Routes>
+        <Route
+          path="/admin"
+          element={
+            adminUser
+              ? <Navigate to={adminUser.role === 'subadmin' && !subAdminCity ? '/admin/cities' : '/admin/panel'} replace />
+              : <AdminLogin onLogin={(loggedInUser) => { setAdminUser(loggedInUser); setSubAdminCity(null); }} />
+          }
+        />
+        <Route
+          path="/admin/cities"
+          element={
+            !adminUser
+              ? <Navigate to="/admin" replace />
+              : adminUser.role !== 'subadmin'
+                ? <Navigate to="/admin/panel" replace />
+                : <SubAdminCities onSelect={(city) => setSubAdminCity(city)} onLogout={handleAdminLogout} />
+          }
+        />
+        <Route
+          path="/admin/panel"
+          element={
+            !adminUser
+              ? <Navigate to="/admin" replace />
+              : adminUser.role === 'subadmin' && !subAdminCity
+                ? <Navigate to="/admin/cities" replace />
+                : adminUser.role === 'subadmin'
+                  ? (
+                    <SubAdminPanel
+                      key={subAdminCity}
+                      city={subAdminCity}
+                      onLogout={handleAdminLogout}
+                      onChangeCity={() => setSubAdminCity(null)}
+                    />
+                  )
+                  : <AdminPanel admin={adminUser} onLogout={handleAdminLogout} />
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            user
+              ? <Navigate to={user.role === 'teacher' ? '/dashboard' : '/courses'} replace />
+              : <Login onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/courses"
+          element={
+            !user
+              ? <Navigate to="/login" replace />
+              : user.role === 'teacher'
+                ? <Navigate to="/dashboard" replace />
+                : <MyCourses />
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            user
+              ? <AppShell user={user} onLogout={() => setUser(null)} />
+              : <Navigate to="/login" replace />
+          }
+        />
+      </Routes>
+      </AuthContext.Provider>
+    </BrowserRouter>
+  );
+}
+
+export default App;
