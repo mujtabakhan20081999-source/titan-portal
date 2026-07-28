@@ -1,5 +1,6 @@
 const express = require('express');
 const Trainer = require('../models/Trainer');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -30,7 +31,33 @@ router.get('/:id', protect, async (req, res, next) => {
 // @route   POST /api/trainers
 router.post('/', protect, async (req, res, next) => {
   try {
-    const trainer = await Trainer.create(req.body);
+    const { fullName, email, campus, dateOfBirth } = req.body;
+    if (!fullName || !email || !campus || !dateOfBirth) {
+      return res.status(400).json({ success: false, message: 'full name, email, campus and date of birth are required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    if (await User.findOne({ email: normalizedEmail })) {
+      return res.status(400).json({ success: false, message: 'A user with this email already exists' });
+    }
+
+    // Teachers activate their account through Create Password after DOB verification.
+    const temporaryPassword = require('crypto').randomBytes(24).toString('hex');
+    const user = await User.create({
+      fullName,
+      email: normalizedEmail,
+      password: temporaryPassword,
+      role: 'teacher',
+      campus,
+    });
+
+    let trainer;
+    try {
+      trainer = await Trainer.create({ ...req.body, email: normalizedEmail, user: user._id });
+    } catch (error) {
+      await User.findByIdAndDelete(user._id);
+      throw error;
+    }
     res.status(201).json({ success: true, data: trainer });
   } catch (error) {
     next(error);

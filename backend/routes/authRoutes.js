@@ -1,6 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Student = require('../models/Student');
+const Trainer = require('../models/Trainer');
 
 const router = express.Router();
 
@@ -11,6 +13,52 @@ function signToken(user) {
     { expiresIn: '7d' }
   );
 }
+
+function dayRange(value) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  const nextDay = new Date(date);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  return { $gte: date, $lt: nextDay };
+}
+
+// @route   POST /api/auth/create-password
+// A student verifies their roll number + DOB; a teacher verifies email + DOB.
+router.post('/create-password', async (req, res, next) => {
+  try {
+    const { role, identifier, dateOfBirth, password } = req.body;
+    if (!['student', 'teacher'].includes(role) || !identifier || !dateOfBirth || !password) {
+      return res.status(400).json({ success: false, message: 'Role, identifier, date of birth and password are required' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const dob = dayRange(dateOfBirth);
+    if (!dob) {
+      return res.status(400).json({ success: false, message: 'Enter a valid date of birth' });
+    }
+
+    const account = role === 'student'
+      ? await Student.findOne({ roll: String(identifier).trim(), dateOfBirth: dob })
+      : await Trainer.findOne({ email: String(identifier).trim().toLowerCase(), dateOfBirth: dob });
+
+    if (!account || !account.user) {
+      return res.status(401).json({ success: false, message: 'The provided details do not match an account' });
+    }
+
+    const user = await User.findById(account.user).select('+password');
+    if (!user || user.role !== role) {
+      return res.status(401).json({ success: false, message: 'The provided details do not match an account' });
+    }
+
+    user.password = password;
+    await user.save();
+    res.json({ success: true, message: 'Password created successfully. You can now log in.' });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // @route   POST /api/auth/register
 router.post('/register', async (req, res, next) => {

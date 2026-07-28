@@ -28,9 +28,9 @@ const emptyStudent = {
   name: '',
   father: '',
   cnic: '',
+  dateOfBirth: '',
   phone: '',
   email: '',
-  password: 'student123',
   city: 'Sukkur',
   course: COURSES_LIST[0],
   meta: '',
@@ -124,8 +124,8 @@ function Students() {
   };
 
   const handleAddStudent = async () => {
-    if (!form.name.trim() || !form.roll.trim()) {
-      setFormError('Name and Roll Number are required');
+    if (!form.name.trim() || !form.roll.trim() || !form.dateOfBirth) {
+      setFormError('Name, Student ID and Date of Birth are required');
       return;
     }
     if (!form.email.trim()) {
@@ -361,7 +361,7 @@ function Students() {
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Muhammad Ali" />
                 </div>
                 <div className="tmg-field">
-                  <label>Roll Number *</label>
+                  <label>Student ID *</label>
                   <input value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} placeholder="e.g. AI-24-001" />
                 </div>
                 <div className="tmg-field">
@@ -373,16 +373,16 @@ function Students() {
                   <input value={form.cnic} onChange={(e) => setForm({ ...form, cnic: e.target.value })} placeholder="45601-1234567-1" />
                 </div>
                 <div className="tmg-field">
+                  <label>Date of Birth *</label>
+                  <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} />
+                </div>
+                <div className="tmg-field">
                   <label>Phone</label>
                   <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0300-1234567" />
                 </div>
                 <div className="tmg-field">
                   <label>Email (for login) *</label>
                   <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" />
-                </div>
-                <div className="tmg-field">
-                  <label>Password (for login)</label>
-                  <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Default: student123" />
                 </div>
                 <div className="tmg-field">
                   <label>City</label>

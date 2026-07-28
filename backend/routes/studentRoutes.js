@@ -43,15 +43,17 @@ router.get('/:id', protect, async (req, res, next) => {
 router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const { password, email, name, city, ...studentDetails } = req.body;
-    if (!email || !password || !name) {
-      return res.status(400).json({ success: false, message: 'name, email and password are required' });
+    if (!email || !name || !studentDetails.roll || !studentDetails.dateOfBirth) {
+      return res.status(400).json({ success: false, message: 'name, email, roll number and date of birth are required' });
     }
     const normalizedEmail = email.toLowerCase().trim();
     const exists = await Student.findOne({ $or: [{ email: normalizedEmail }, { roll: studentDetails.roll }] });
     if (exists || await User.findOne({ email: normalizedEmail })) {
       return res.status(400).json({ success: false, message: 'A student with this email or roll number already exists' });
     }
-    const user = await User.create({ fullName: name, email: normalizedEmail, password, role: 'student', campus: city || '' });
+    // The student sets their own password after identity verification.
+    const temporaryPassword = password || require('crypto').randomBytes(24).toString('hex');
+    const user = await User.create({ fullName: name, email: normalizedEmail, password: temporaryPassword, role: 'student', campus: city || '' });
     let student;
     try {
       student = await Student.create({ ...studentDetails, name, city, email: normalizedEmail, user: user._id });

@@ -10,3 +10,8 @@ export async function register(fullName, email, password, role, campus) {
   return data;
 }
 
+export async function createPassword(role, identifier, dateOfBirth, password) {
+  const { data } = await api.post('/auth/create-password', { role, identifier, dateOfBirth, password });
+  return data;
+}
+

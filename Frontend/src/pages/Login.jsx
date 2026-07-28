@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Login.css';
 import titanLogo from '../assets/TITAN LOGO without BG.png';
-import { login } from '../services/authService';
+import { createPassword, login } from '../services/authService';
 
 function ShieldLogo() {
   return (
@@ -362,7 +362,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
   const [activeTab,    setActiveTab]    = useState('login');
   const [showPass,     setShowPass]     = useState(false);
   const [showCrPass,   setShowCrPass]   = useState(false);
-  const [createForm,   setCreateForm]   = useState({ cnic: '', dob: '', password: '' });
+  const [createForm,   setCreateForm]   = useState({ identifier: '', dob: '', password: '' });
   const [error,        setError]        = useState('');
   const [loading,      setLoading]      = useState(false);
   const [shake,        setShake]        = useState(false);
@@ -407,9 +407,25 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
     }
   };
 
-  const handleCreatePassword = (e) => {
+  const handleCreatePassword = async (e) => {
     e.preventDefault();
-    if (onLogin) onLogin();
+    setError('');
+    if (!createForm.identifier.trim() || !createForm.dob || !createForm.password) {
+      setError('Please fill in all fields.');
+      triggerShake();
+      return;
+    }
+    setLoading(true);
+    try {
+      await createPassword(isTeacher ? 'teacher' : 'student', createForm.identifier.trim(), createForm.dob, createForm.password);
+      setCreateForm({ identifier: '', dob: '', password: '' });
+      setActiveTab('login');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to create password with these details.');
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -526,23 +542,27 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
           <div key="create-password" className="form-tab-content">
             <h3 className="login-form-title">Create a Password</h3>
             <p className="login-form-sub">
-              Kindly provide the CNIC number and DOB used during SMIT course registration.
+              {isTeacher
+                ? 'Enter the email address and date of birth provided to the administration.'
+                : 'Enter the student ID and date of birth provided to the administration.'}
             </p>
 
-            <form onSubmit={handleCreatePassword}>
+            <form onSubmit={handleCreatePassword} className={shake ? 'login-shake' : ''}>
+
+              {error && <div className="login-error-msg">{error}</div>}
 
               <div className="login-field-group">
                 <label className="login-label">
-                  CNIC <span className="login-required">*</span>
+                  {isTeacher ? 'Email Address' : 'Student ID'} <span className="login-required">*</span>
                 </label>
                 <div className="login-input-wrap">
                   <span className="login-input-icon"><PersonIcon /></span>
                   <input
-                    type="text"
+                    type={isTeacher ? 'email' : 'text'}
                     className="login-input"
-                    placeholder={isTeacher ? 'Enter your CNIC' : 'Enter your CNIC'}
-                    value={createForm.cnic}
-                    onChange={e => setCreateForm(f => ({ ...f, cnic: e.target.value }))}
+                    placeholder={isTeacher ? 'Enter your registered email address' : 'Enter your student ID'}
+                    value={createForm.identifier}
+                    onChange={e => { setError(''); setCreateForm(f => ({ ...f, identifier: e.target.value })); }}
                   />
                 </div>
               </div>
@@ -556,7 +576,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                     type="date"
                     className="login-input login-input-date"
                     value={createForm.dob}
-                    onChange={e => setCreateForm(f => ({ ...f, dob: e.target.value }))}
+                    onChange={e => { setError(''); setCreateForm(f => ({ ...f, dob: e.target.value })); }}
                     style={{ paddingLeft: 14 }}
                   />
                 </div>
@@ -573,7 +593,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                     className="login-input"
                     placeholder="Create a password"
                     value={createForm.password}
-                    onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))}
+                    onChange={e => { setError(''); setCreateForm(f => ({ ...f, password: e.target.value })); }}
                   />
                   <button type="button" className="login-eye-btn"
                     onClick={() => setShowCrPass(p => !p)}
@@ -583,8 +603,8 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                 </div>
               </div>
 
-              <button type="submit" className="login-btn-primary login-btn-submit">
-                SUBMIT
+              <button type="submit" className="login-btn-primary login-btn-submit" disabled={loading}>
+                {loading ? 'VERIFYING…' : 'SUBMIT'}
               </button>
 
               <div className="login-switch-row">
