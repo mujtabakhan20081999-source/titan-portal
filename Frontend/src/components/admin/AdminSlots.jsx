@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Eye, Pencil, Trash2, X, CalendarClock, MapPin } from 'lucide-react';
 
+import { listSlots, createSlot, updateSlot, deleteSlot } from '../../services/slotService';
+
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
@@ -9,14 +11,6 @@ const TRAINERS = ['Ali Raza', 'Sana Khan', 'Usman Ali', 'Fatima Noor', 'Bilal Ah
 const CAMPUSES = ['Sukkur Campus', 'Karachi Campus', 'Lahore Campus', 'Islamabad Campus', 'Multan Campus'];
 const CITIES = CAMPUSES.map((c) => c.replace(' Campus', ''));
 
-const SEED = [
-  { id: 'SLOT-001', course: 'Artificial Intelligence', trainer: 'Ali Raza', campus: 'Sukkur Campus', days: 'Mon, Wed, Fri', time: '09:00 AM - 11:00 AM', filled: 18, seats: 25, status: 'Open' },
-  { id: 'SLOT-002', course: 'Web Development', trainer: 'Sana Khan', campus: 'Karachi Campus', days: 'Tue, Thu, Sat', time: '02:00 PM - 04:00 PM', filled: 32, seats: 32, status: 'Closed' },
-  { id: 'SLOT-003', course: 'Python Programming', trainer: 'Usman Ali', campus: 'Lahore Campus', days: 'Mon, Wed, Fri', time: '06:00 PM - 08:00 PM', filled: 24, seats: 40, status: 'Open' },
-  { id: 'SLOT-004', course: 'Data Science', trainer: 'Fatima Noor', campus: 'Islamabad Campus', days: 'Tue, Thu', time: '11:00 AM - 01:00 PM', filled: 22, seats: 30, status: 'Open' },
-  { id: 'SLOT-005', course: 'Graphic Design', trainer: 'Bilal Ahmed', campus: 'Multan Campus', days: 'Mon, Wed', time: '03:00 PM - 05:00 PM', filled: 40, seats: 40, status: 'Closed' },
-  { id: 'SLOT-006', course: 'Cyber Security', trainer: 'Ali Raza', campus: 'Karachi Campus', days: 'Wed, Fri', time: '10:00 AM - 12:00 PM', filled: 12, seats: 28, status: 'Open' },
-];
 
 const GRID = '104px 1.5fr 1.1fr 1.2fr 1.4fr 96px 92px 92px';
 
@@ -38,8 +32,17 @@ export default function AdminSlots({ city }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
-    const t = setTimeout(() => { setRows(SEED); setLoading(false); }, 400);
-    return () => clearTimeout(t);
+    async function loadSlots() {
+      try {
+        const slotData = await listSlots();
+        setRows(slotData || []);
+      } catch (err) {
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSlots();
   }, []);
 
   useEffect(() => { setCityFilter(city || 'All Cities'); }, [city]);
@@ -53,7 +56,7 @@ export default function AdminSlots({ city }) {
       if (courseFilter !== 'All Courses' && r.course !== courseFilter) return false;
       if (statusFilter !== 'All' && r.status !== statusFilter) return false;
       if (!q) return true;
-      return r.id.toLowerCase().includes(q) || r.course.toLowerCase().includes(q) || r.trainer.toLowerCase().includes(q) || r.campus.toLowerCase().includes(q);
+      return r.slotId.toLowerCase().includes(q) || r.course.toLowerCase().includes(q) || r.trainer.toLowerCase().includes(q) || r.campus.toLowerCase().includes(q);
     });
   }, [rows, search, cityFilter, courseFilter, statusFilter]);
 
@@ -64,23 +67,68 @@ export default function AdminSlots({ city }) {
   const campusOptions = city ? CAMPUSES.filter((c) => c === `${city} Campus`) : CAMPUSES;
 
   const openAdd = () => { setForm(city ? { ...emptyForm, campus: `${city} Campus` } : emptyForm); setModal({ mode: 'add' }); };
-  const openEdit = (r) => { setForm({ ...r }); setModal({ mode: 'edit', id: r.id }); };
+  const openEdit = (r) => { setForm({ ...r }); setModal({ mode: 'edit', id: r.slotId }); };
 
-  const save = () => {
-    if (!form.time.trim() || !form.days.trim() || Number(form.seats) <= 0) { setToast('Please fill all fields correctly.'); return; }
-    if (modal.mode === 'add') {
-      const nextNum = String(rows.length + 1).padStart(3, '0');
-      const created = { ...form, id: `SLOT-${nextNum}`, filled: 0, seats: Number(form.seats), status: 'Open' };
-      setRows((p) => [created, ...p]);
-      setToast('Slot created successfully.');
-    } else {
-      setRows((p) => p.map((r) => (r.id === modal.id ? { ...r, ...form, seats: Number(form.seats), status: Number(r.filled) >= Number(form.seats) ? 'Closed' : 'Open' } : r)));
-      setToast('Slot updated.');
+  const save = async () => {
+    if (!form.time.trim() || !form.days.trim() || Number(form.seats) <= 0) {
+      setToast('Please fill all fields correctly.');
+      return;
     }
-    setModal(null);
+
+    try {
+      if (modal.mode === 'add') {
+        const payload = {
+          course: form.course,
+          trainer: form.trainer,
+          campus: form.campus,
+          days: form.days,
+          time: form.time,
+          seats: Number(form.seats),
+          classType: form.classType,
+          gender: form.gender,
+          start: form.start,
+          end: form.end,
+          whatsapp: form.whatsapp,
+        };
+        const created = await createSlot(payload);
+        setRows((p) => [created, ...p]);
+        setToast('Slot created successfully.');
+      } else {
+        const payload = {
+          course: form.course,
+          trainer: form.trainer,
+          campus: form.campus,
+          days: form.days,
+          time: form.time,
+          seats: Number(form.seats),
+          classType: form.classType,
+          gender: form.gender,
+          start: form.start,
+          end: form.end,
+          whatsapp: form.whatsapp,
+        };
+        const updated = await updateSlot(modal.id, payload);
+        setRows((p) => p.map((r) => (r.slotId === modal.id ? updated : r)));
+        setToast('Slot updated.');
+      }
+    } catch (err) {
+      setToast(err?.response?.data?.message || 'Unable to save slot.');
+    } finally {
+      setModal(null);
+    }
   };
 
-  const doDelete = (id) => { setRows((p) => p.filter((r) => r.id !== id)); setConfirmDelete(null); setToast('Slot deleted.'); };
+  const doDelete = async (slotId) => {
+    try {
+      await deleteSlot(slotId);
+      setRows((p) => p.filter((r) => r.slotId !== slotId));
+      setToast('Slot deleted.');
+    } catch (err) {
+      setToast(err?.response?.data?.message || 'Unable to delete slot.');
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
 
   return (
     <div className="ap-page">
@@ -135,8 +183,8 @@ export default function AdminSlots({ city }) {
             ) : paginated.length === 0 ? (
               <div style={{ padding: 34, textAlign: 'center', color: '#5F7A9E', fontWeight: 800 }}>No Slots Found</div>
             ) : paginated.map((r) => (
-              <div className="atable-row" key={r.id} style={{ gridTemplateColumns: GRID }}>
-                <span className="atable-cell-strong">{r.id}</span>
+              <div className="atable-row" key={r.slotId} style={{ gridTemplateColumns: GRID }}>
+                <span className="atable-cell-strong">{r.slotId}</span>
                 <span className="atable-cell-strong" style={{ fontSize: 12.5 }}>{r.course}</span>
                 <span className="atable-cell">{r.trainer}</span>
                 <span className="atable-cell">{r.campus}</span>
@@ -179,7 +227,7 @@ export default function AdminSlots({ city }) {
           <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <span className="ap-modal-title">
-                {modal.mode === 'add' ? 'Add New Slot' : modal.mode === 'edit' ? 'Edit Slot' : `Slot ${modal.data.id}`}
+                {modal.mode === 'add' ? 'Add New Slot' : modal.mode === 'edit' ? 'Edit Slot' : `Slot ${modal.data.slotId}`}
               </span>
               <button className="ap-modal-close" onClick={() => setModal(null)}><X size={20} /></button>
             </div>
@@ -252,13 +300,13 @@ export default function AdminSlots({ city }) {
                   <Trash2 size={22} color="#dc2626" />
                 </div>
                 <div style={{ fontSize: 13.5, color: '#10375C', fontWeight: 600, lineHeight: 1.5 }}>
-                  Are you sure you want to delete <b>{confirmDelete.id}</b> ({confirmDelete.course})? This cannot be undone.
+                  Are you sure you want to delete <b>{confirmDelete.slotId || confirmDelete.id}</b> ({confirmDelete.course})? This cannot be undone.
                 </div>
               </div>
             </div>
             <div className="ap-modal-actions">
               <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Cancel</button>
-              <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #f87171, #dc2626)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }} onClick={() => doDelete(confirmDelete.id)}>Delete</button>
+              <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #f87171, #dc2626)', boxShadow: '0 4px 12px rgba(220,38,38,0.3)' }} onClick={() => doDelete(confirmDelete.slotId)}>Delete</button>
             </div>
           </div>
         </div>

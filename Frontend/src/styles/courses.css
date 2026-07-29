@@ -109,6 +109,41 @@
   grid-template-columns: repeat(auto-fill, minmax(520px, 640px));
   gap: 22px;
 }
+.cl-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.cl-summary-card {
+  background: linear-gradient(135deg, rgba(243, 198, 35, 0.12), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(235, 131, 23, 0.16);
+  border-radius: 22px;
+  padding: 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 170px;
+}
+.cl-summary-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cl-summary-card-value {
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--text);
+}
+.cl-summary-card-meta {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cl-summary-card.fee-card { background: linear-gradient(135deg, rgba(16, 55, 92, 0.08), rgba(243, 198, 35, 0.08)); }
+.cl-summary-card.attendance-card { border-color: rgba(56, 189, 248, 0.22); }
+.cl-summary-card.course-card { border-color: rgba(168, 85, 247, 0.22); }
 .cl-card {
   background: var(--surface);
   border-radius: 22px;

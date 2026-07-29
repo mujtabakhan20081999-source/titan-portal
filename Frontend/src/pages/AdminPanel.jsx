@@ -37,6 +37,7 @@ import Students from './Students';
 import AuditLogs from './AuditLogs';
 import { listStudents } from '../services/studentService';
 import { listTrainers } from '../services/trainerService';
+import { listSlots } from '../services/slotService';
 
 import '../styles/admin.css';
 
@@ -293,16 +294,19 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
   const [active, setActive] = useState('Dashboard');
   const [databaseStudents, setDatabaseStudents] = useState([]);
   const [databaseTrainers, setDatabaseTrainers] = useState([]);
+  const [databaseSlots, setDatabaseSlots] = useState([]);
 
   useEffect(() => {
-    Promise.all([listStudents(), listTrainers()])
-      .then(([studentRows, trainerRows]) => {
+    Promise.all([listStudents(), listTrainers(), listSlots()])
+      .then(([studentRows, trainerRows, slotRows]) => {
         setDatabaseStudents(studentRows || []);
         setDatabaseTrainers(trainerRows || []);
+        setDatabaseSlots(slotRows || []);
       })
       .catch(() => {
         setDatabaseStudents([]);
         setDatabaseTrainers([]);
+        setDatabaseSlots([]);
       });
   }, []);
 
@@ -324,7 +328,7 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
         cities: new Set(databaseStudents.map((student) => student.city).filter(Boolean)).size,
         campuses: new Set(databaseStudents.map((student) => student.city).filter(Boolean)).size,
         trainers: databaseTrainers.length,
-        slots: 0,
+        slots: databaseSlots.length,
       };
       return { ...s, value: (values[s.key] ?? 0).toLocaleString(), sub: 'Live database' };
     });

@@ -109,7 +109,9 @@ function AttendanceTab({ students, attendanceRecords, onRefresh }) {
         const id = student._id || student.roll;
         const status = marks[id];
         await createAttendance({
-          trainerName: student.name,
+          studentId: student.roll,
+          studentName: student.name,
+          trainerName: 'Teacher',
           date: new Date(),
           status,
           remarks: '',

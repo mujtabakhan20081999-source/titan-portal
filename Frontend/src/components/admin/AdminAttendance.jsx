@@ -3,6 +3,7 @@ import {
   CheckCircle2, Clock3, XCircle, ScanLine, Search, CalendarDays,
   UserCheck, UserX, Coffee, Save, Users,
 } from 'lucide-react';
+import { listStudents } from '../../services/studentService';
 import { listAttendance, createAttendance, updateAttendance, deleteAttendance } from '../../services/attendanceService';
 
 import '../../styles/admin.css';
@@ -49,6 +50,18 @@ export default function AdminAttendance() {
 
   useEffect(() => {
     fetchRecords();
+
+    const fetchStudents = async () => {
+      try {
+        const list = await listStudents();
+        setStudents(list || []);
+      } catch (err) {
+        console.error('Failed to load students for attendance lookup:', err);
+        setStudents([]);
+      }
+    };
+
+    fetchStudents();
   }, [fetchRecords]);
 
   // ── Mark tab state ──
@@ -56,14 +69,12 @@ export default function AdminAttendance() {
   const [selected, setSelected] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [recent, setRecent] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const lookup = () => {
     const q = rollInput.trim().toLowerCase();
     if (!q) return;
-    // Search in existing attendance records by name/roll
-    const found = records.find(
-      (d) => (d.roll && d.roll.toLowerCase() === q) || (d.trainerName && d.trainerName.toLowerCase().includes(q)),
-    );
+    const found = students.find((s) => s.roll?.toLowerCase() === q || s.name?.toLowerCase().includes(q));
     setSelected(found || null);
     setNotFound(!found);
   };
@@ -72,7 +83,8 @@ export default function AdminAttendance() {
     if (!selected) return;
     try {
       const payload = {
-        trainerName: selected.trainerName || selected.name || 'Unknown',
+        studentId: selected.roll,
+        studentName: selected.name,
         date: new Date(),
         status,
         checkIn: status === 'Present' || status === 'Late' ? nowLabel() : null,
@@ -81,7 +93,7 @@ export default function AdminAttendance() {
       };
       const created = await createAttendance(payload);
       setRecent((prev) => [
-        { _id: created._id, roll: selected.roll || '', name: selected.trainerName || selected.name || 'Unknown', status, time: nowLabel() },
+        { _id: created._id, roll: selected.roll || '', name: selected.name || 'Unknown', status, time: nowLabel() },
         ...prev,
       ].slice(0, 8));
       setSelected(null);

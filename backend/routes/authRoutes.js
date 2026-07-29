@@ -53,7 +53,9 @@ router.post('/create-password', async (req, res, next) => {
     }
 
     user.password = password;
+    user.status = 'Active';
     await user.save();
+
     res.json({ success: true, message: 'Password created successfully. You can now log in.' });
   } catch (error) {
     next(error);
@@ -61,57 +63,45 @@ router.post('/create-password', async (req, res, next) => {
 });
 
 // @route   POST /api/auth/register
+// Public registration is disabled: only administrators may create student and trainer accounts.
 router.post('/register', async (req, res, next) => {
-  try {
-    const { fullName, email, password, role, campus } = req.body;
-
-    if (!fullName || !email || !password) {
-      return res.status(400).json({ success: false, message: 'fullName, email and password are required' });
-    }
-
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'User with this email already exists' });
-    }
-
-    // Public registration must never be able to mint an admin account. Admins
-    // create student accounts through POST /api/students instead.
-    const user = await User.create({ fullName, email, password, role: 'student', campus });
-    const token = signToken(user);
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        campus: user.campus,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.status(403).json({ success: false, message: 'Registration is disabled. Accounts may only be created by administrators.' });
 });
 
 // @route   POST /api/auth/login
 router.post('/login', async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const identifier = req.body.identifier || req.body.email || req.body.id;
+    const { password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Identifier and password are required' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    let user = null;
+    let student = null;
+    const isEmail = String(identifier).includes('@');
+
+    if (isEmail) {
+      user = await User.findOne({ email: identifier.toLowerCase().trim() }).select('+password');
+    } else {
+      student = await Student.findOne({ roll: String(identifier).trim() });
+      if (student && student.user) {
+        user = await User.findById(student.user).select('+password');
+      }
+    }
+
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid identifier or password' });
+    }
+
+    if (!user.password) {
+      return res.status(401).json({ success: false, message: 'Password not set. Please create your password first.' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Invalid identifier or password' });
     }
 
     const token = signToken(user);

@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MapPin, Users, GraduationCap, CalendarClock, ArrowRight, LogOut, Building2, ShieldCheck,
 } from 'lucide-react';
 import titanLogo from '../assets/TITAN LOGO without BG.png';
+import { getCityStats } from '../services/adminService';
 import '../styles/subadmin.css';
 
 const CITY_CARDS = [
-  { name: 'Sukkur',    campus: 'Sukkur Campus',    students: 1345, trainers: 38, slots: 24, grad: ['#0A3D91', '#1150c0'] },
-  { name: 'Karachi',   campus: 'Karachi Campus',   students: 986,  trainers: 32, slots: 19, grad: ['#1150c0', '#2563eb'] },
-  { name: 'Lahore',    campus: 'Lahore Campus',    students: 754,  trainers: 26, slots: 15, grad: ['#2563eb', '#3b82f6'] },
-  { name: 'Islamabad', campus: 'Islamabad Campus', students: 632,  trainers: 22, slots: 12, grad: ['#0891b2', '#22d3ee'] },
-  { name: 'Multan',    campus: 'Multan Campus',    students: 521,  trainers: 18, slots: 10, grad: ['#b45309', '#F3C623'] },
+  { name: 'Sukkur',    campus: 'Sukkur Campus',    students: 0, trainers: 0, slots: 0, grad: ['#0A3D91', '#1150c0'] },
+  { name: 'Karachi',   campus: 'Karachi Campus',   students: 0, trainers: 0, slots: 0, grad: ['#1150c0', '#2563eb'] },
+  { name: 'Lahore',    campus: 'Lahore Campus',    students: 0, trainers: 0, slots: 0, grad: ['#2563eb', '#3b82f6'] },
+  { name: 'Islamabad', campus: 'Islamabad Campus', students: 0, trainers: 0, slots: 0, grad: ['#0891b2', '#22d3ee'] },
+  { name: 'Multan',    campus: 'Multan Campus',    students: 0, trainers: 0, slots: 0, grad: ['#b45309', '#F3C623'] },
 ];
 
 function CitySkyline(props) {
@@ -36,6 +37,38 @@ function CitySkyline(props) {
 function SubAdminCities({ onSelect, onLogout }) {
   const navigate = useNavigate();
   const [chosen, setChosen] = useState(null);
+  const [cities, setCities] = useState(CITY_CARDS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    async function loadStats() {
+      try {
+        const stats = await getCityStats();
+        if (!active) return;
+
+        const updated = CITY_CARDS.map((card) => {
+          const stat = stats.find((item) => item.city === card.name);
+          return stat
+            ? {
+              ...card,
+              students: stat.students,
+              trainers: stat.trainers,
+              slots: stat.slots,
+            }
+            : card;
+        });
+        setCities(updated);
+      } catch (err) {
+        console.error('Failed to load city stats:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    loadStats();
+    return () => { active = false; };
+  }, []);
 
   const pick = (city) => {
     if (chosen) return;
@@ -70,7 +103,7 @@ function SubAdminCities({ onSelect, onLogout }) {
       </div>
 
       <div className={`sac-grid${chosen ? ' leaving' : ''}`}>
-        {CITY_CARDS.map((c, i) => (
+        {cities.map((c, i) => (
           <button
             key={c.name}
             className={`sac-card${chosen === c.name ? ' chosen' : ''}`}
@@ -88,17 +121,17 @@ function SubAdminCities({ onSelect, onLogout }) {
             <div className="sac-card-stats">
               <div>
                 <Users size={14} />
-                <b>{c.students.toLocaleString()}</b>
+                <b>{loading ? '—' : c.students.toLocaleString()}</b>
                 <span>Students</span>
               </div>
               <div>
                 <GraduationCap size={14} />
-                <b>{c.trainers}</b>
+                <b>{loading ? '—' : c.trainers.toLocaleString()}</b>
                 <span>Trainers</span>
               </div>
               <div>
                 <CalendarClock size={14} />
-                <b>{c.slots}</b>
+                <b>{loading ? '—' : c.slots.toLocaleString()}</b>
                 <span>Slots</span>
               </div>
             </div>

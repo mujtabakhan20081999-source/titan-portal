@@ -1,12 +1,12 @@
 const express = require('express');
 const Trainer = require('../models/Trainer');
 const User = require('../models/User');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
 // @route   GET /api/trainers
-router.get('/', protect, async (req, res, next) => {
+router.get('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const trainers = await Trainer.find().sort({ createdAt: -1 });
     res.json({ success: true, count: trainers.length, data: trainers });
@@ -16,7 +16,7 @@ router.get('/', protect, async (req, res, next) => {
 });
 
 // @route   GET /api/trainers/:id
-router.get('/:id', protect, async (req, res, next) => {
+router.get('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const trainer = await Trainer.findById(req.params.id);
     if (!trainer) {
@@ -29,7 +29,7 @@ router.get('/:id', protect, async (req, res, next) => {
 });
 
 // @route   POST /api/trainers
-router.post('/', protect, async (req, res, next) => {
+router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const { fullName, email, campus, dateOfBirth } = req.body;
     if (!fullName || !email || !campus || !dateOfBirth) {
@@ -65,7 +65,7 @@ router.post('/', protect, async (req, res, next) => {
 });
 
 // @route   PUT /api/trainers/:id
-router.put('/:id', protect, async (req, res, next) => {
+router.put('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const trainer = await Trainer.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -81,7 +81,7 @@ router.put('/:id', protect, async (req, res, next) => {
 });
 
 // @route   DELETE /api/trainers/:id
-router.delete('/:id', protect, async (req, res, next) => {
+router.delete('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
     const trainer = await Trainer.findByIdAndDelete(req.params.id);
     if (!trainer) {

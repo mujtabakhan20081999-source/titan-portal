@@ -9,6 +9,8 @@ const trainerRoutes = require('./routes/trainerRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
+const slotRoutes = require('./routes/slotRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 
@@ -37,6 +39,8 @@ app.use('/api/trainers', trainerRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/slots', slotRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 + error handling (must be last)
 app.use(notFound);

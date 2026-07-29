@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, Users, Save, CheckCircle2 } from 'lucide-react';
 
+import { getRolePermissions, updateRolePermissions } from '../../services/adminService';
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
@@ -16,6 +17,13 @@ const INITIAL_ROLES = {
   'Student': Object.fromEntries(MODULES.map((m) => [m, ['Dashboard'].includes(m) ? ['read'] : []])),
 };
 
+const ROLE_KEYS = {
+  'Super Admin': 'superadmin',
+  'Sub Admin': 'subadmin',
+  Trainer: 'trainer',
+  Student: 'student',
+};
+
 const ROLE_META = {
   'Super Admin': { color: '#0A3D91', bg: '#dbeafe', desc: 'Full unrestricted access' },
   'Sub Admin': { color: '#7c3aed', bg: '#ede9fe', desc: 'Campus-level management' },
@@ -27,6 +35,29 @@ export default function AdminPermissions() {
   const [roles, setRoles] = useState(INITIAL_ROLES);
   const [activeRole, setActiveRole] = useState('Super Admin');
   const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function loadPermissions() {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await getRolePermissions();
+        const mapped = Object.fromEntries(
+          Object.entries(ROLE_KEYS).map(([display, backendKey]) => [display, data[backendKey] || INITIAL_ROLES[display]])
+        );
+        setRoles(mapped);
+      } catch (loadError) {
+        console.error(loadError);
+        setError('Unable to load role permissions. Please refresh.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPermissions();
+  }, []);
 
   const toggle = (module, perm) => {
     setRoles((prev) => {
@@ -40,7 +71,20 @@ export default function AdminPermissions() {
     setRoles((prev) => ({ ...prev, [activeRole]: { ...prev[activeRole], [module]: on ? [...ALL_PERMS] : [] } }));
   };
 
-  const save = () => { setToast(`Permissions saved for ${activeRole}.`); setTimeout(() => setToast(''), 2200); };
+  const save = async () => {
+    setError('');
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(roles).map(([displayName, perms]) => [ROLE_KEYS[displayName], perms])
+      );
+      await updateRolePermissions(payload);
+      setToast(`Permissions saved for ${activeRole}.`);
+      setTimeout(() => setToast(''), 2200);
+    } catch (saveError) {
+      console.error(saveError);
+      setError('Failed to save permissions. Try again.');
+    }
+  };
 
   const GRID = '1.4fr 1fr 1fr 1fr 1fr 92px';
   const grants = roles[activeRole];
@@ -52,13 +96,19 @@ export default function AdminPermissions() {
         <div>
           <h2>Permissions</h2>
           <p>Manage role permissions</p>
+          {error && <div className="ap-error" style={{ marginTop: 8 }}>{error}</div>}
         </div>
-        <button className="btn-primary" onClick={save}><Save size={15} /> Save Changes</button>
+        <button className="btn-primary" onClick={save} disabled={loading}><Save size={15} /> Save Changes</button>
       </div>
 
-      <div className="ap-2col-b">
-        {/* Roles list */}
-        <div className="acard">
+      {loading ? (
+        <div className="ap-page" style={{ minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#415165', fontWeight: 700 }}>
+          Loading permissions...
+        </div>
+      ) : (
+        <div className="ap-2col-b">
+          {/* Roles list */}
+          <div className="acard">
           <div className="acard-head" style={{ marginBottom: 14 }}>
             <span className="acard-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Users size={16} color="#0A3D91" /> Roles
@@ -134,7 +184,8 @@ export default function AdminPermissions() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {toast && <div className="ap-toast"><CheckCircle2 size={16} /> {toast}</div>}
     </div>

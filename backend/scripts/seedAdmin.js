@@ -2,30 +2,56 @@ require('dotenv').config({ quiet: true });
 const mongoose = require('mongoose');
 const User = require('../models/User');
 
-const email = process.env.ADMIN_EMAIL || 'admin@titan.edu';
-const password = process.env.ADMIN_PASSWORD || 'Admin@2026';
+const adminEmail = process.env.ADMIN_EMAIL || 'admin@titan.edu';
+const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@2026';
+const subadminEmail = process.env.SUBADMIN_EMAIL || 'subadmin@titan.edu';
+const subadminPassword = process.env.SUBADMIN_PASSWORD || 'SubAdmin@2026';
 
-async function seedAdmin() {
-  await mongoose.connect(process.env.MONGO_URI);
-  let admin = await User.findOne({ email });
+async function seedUser({ email, password, fullName, role, campus }) {
+  let user = await User.findOne({ email });
 
-  if (admin) {
-    admin.fullName = 'TITAN Super Admin';
-    admin.role = 'superadmin';
-    admin.status = 'Active';
-    admin.password = password;
-    await admin.save();
+  if (user) {
+    user.fullName = fullName;
+    user.role = role;
+    user.status = 'Active';
+    user.campus = campus;
+    user.password = password;
+    await user.save();
   } else {
-    admin = await User.create({
-      fullName: 'TITAN Super Admin',
+    user = await User.create({
+      fullName,
       email,
       password,
-      role: 'superadmin',
-      campus: 'Sukkur Campus',
+      role,
+      campus,
     });
   }
 
+  return user;
+}
+
+async function seedAdmin() {
+  await mongoose.connect(process.env.MONGO_URI);
+
+  const admin = await seedUser({
+    email: adminEmail,
+    password: adminPassword,
+    fullName: 'TITAN Super Admin',
+    role: 'superadmin',
+    campus: 'Sukkur Campus',
+  });
+
+  const subadmin = await seedUser({
+    email: subadminEmail,
+    password: subadminPassword,
+    fullName: 'TITAN Sub Admin',
+    role: 'subadmin',
+    campus: 'Sukkur Campus',
+  });
+
   console.log(`Superadmin is ready: ${admin.email}`);
+  console.log(`Subadmin is ready: ${subadmin.email}`);
+
   await mongoose.disconnect();
 }
 
