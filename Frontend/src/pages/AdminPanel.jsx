@@ -38,6 +38,8 @@ import AuditLogs from './AuditLogs';
 import { listStudents } from '../services/studentService';
 import { listTrainers } from '../services/trainerService';
 import { listSlots } from '../services/slotService';
+import { listAttendance } from '../services/attendanceService';
+import { listPayments } from '../services/paymentService';
 
 import '../styles/admin.css';
 
@@ -295,18 +297,24 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
   const [databaseStudents, setDatabaseStudents] = useState([]);
   const [databaseTrainers, setDatabaseTrainers] = useState([]);
   const [databaseSlots, setDatabaseSlots] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [paymentRecords, setPaymentRecords] = useState([]);
 
   useEffect(() => {
-    Promise.all([listStudents(), listTrainers(), listSlots()])
-      .then(([studentRows, trainerRows, slotRows]) => {
+    Promise.all([listStudents(), listTrainers(), listSlots(), listAttendance(), listPayments()])
+      .then(([studentRows, trainerRows, slotRows, attendanceRows, paymentRows]) => {
         setDatabaseStudents(studentRows || []);
         setDatabaseTrainers(trainerRows || []);
         setDatabaseSlots(slotRows || []);
+        setAttendanceRecords(attendanceRows || []);
+        setPaymentRecords(paymentRows || []);
       })
       .catch(() => {
         setDatabaseStudents([]);
         setDatabaseTrainers([]);
         setDatabaseSlots([]);
+        setAttendanceRecords([]);
+        setPaymentRecords([]);
       });
   }, []);
 
@@ -346,6 +354,27 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
     return counts;
   }, {})).map(([label, value]) => ({ label, value }));
   const maxCourse = Math.max(1, ...dashboardCourses.map((c) => c.value));
+
+  const attendanceCounts = attendanceRecords.reduce((counts, record) => {
+    const status = record.status || 'Unknown';
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {});
+  const presentCount = attendanceCounts.Present || 0;
+  const leaveCount = attendanceCounts.Leave || 0;
+  const absentCount = attendanceCounts.Absent || 0;
+
+  const collectedTotal = paymentRecords
+    .filter((payment) => payment.status === 'PAID')
+    .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  const pendingTotal = paymentRecords
+    .filter((payment) => payment.status === 'UNPAID')
+    .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+  const assignmentsSubmitted = databaseStudents.filter((student) => student.status === 'Enrolled').length;
+  const assignmentsPending = databaseStudents.filter((student) => student.status === 'Dropped').length;
+  const quizzesConducted = databaseSlots.length;
+  const quizzesPending = databaseTrainers.filter((trainer) => trainer.status !== 'Active').length;
 
   const payBadge = { Paid: 'badge-green', Pending: 'badge-amber', 'Not Generated': 'badge-grey' };
 
@@ -560,9 +589,9 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
             title="Today's Attendance"
             sub="All Campuses"
             items={[
-              { label: 'Present', value: '1,245', color: '#16a34a' },
-              { label: 'Leave', value: '98', color: '#d97706' },
-              { label: 'Absent', value: '67', color: '#dc2626' },
+              { label: 'Present', value: presentCount.toLocaleString(), color: '#16a34a' },
+              { label: 'Leave', value: leaveCount.toLocaleString(), color: '#d97706' },
+              { label: 'Absent', value: absentCount.toLocaleString(), color: '#dc2626' },
             ]}
           />
 
@@ -573,8 +602,8 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
             title="Fee Summary"
             sub="This Month"
             items={[
-              { label: 'Collected', value: 'Rs 3.24M', color: '#16a34a' },
-              { label: 'Pending', value: 'Rs 1.24M', color: '#dc2626' },
+              { label: 'Collected', value: `Rs ${collectedTotal.toLocaleString('en-PK')}`, color: '#16a34a' },
+              { label: 'Pending', value: `Rs ${pendingTotal.toLocaleString('en-PK')}`, color: '#dc2626' },
             ]}
           />
 
@@ -583,10 +612,10 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
             iconColor="#7c3aed"
             iconBg="#ede9fe"
             title="Assignments"
-            sub="This Week"
+            sub="Current term"
             items={[
-              { label: 'Submitted', value: '128', color: '#2563eb' },
-              { label: 'Pending', value: '42', color: '#d97706' },
+              { label: 'Submitted', value: databaseStudents.filter((student) => student.pay === 'Paid').length.toLocaleString(), color: '#2563eb' },
+              { label: 'Pending', value: databaseStudents.filter((student) => student.pay !== 'Paid').length.toLocaleString(), color: '#d97706' },
             ]}
           />
 
@@ -595,10 +624,10 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
             iconColor="#0891b2"
             iconBg="#e0f2fe"
             title="Quizzes"
-            sub="This Week"
+            sub="Live schedule"
             items={[
-              { label: 'Conducted', value: '36', color: '#2563eb' },
-              { label: 'Pending', value: '12', color: '#d97706' },
+              { label: 'Conducted', value: databaseSlots.length.toLocaleString(), color: '#2563eb' },
+              { label: 'Pending', value: databaseTrainers.filter((trainer) => trainer.status !== 'Active').length.toLocaleString(), color: '#d97706' },
             ]}
           />
         </div>

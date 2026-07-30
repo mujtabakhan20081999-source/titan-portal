@@ -100,6 +100,37 @@ function TrainerModal({
   if (!open) return null;
 
   return (
+    <>
+      <style>{`
+        .tmg-modal-backdrop{position:fixed; inset:0; background: rgba(17, 12, 58, .40); display:flex; align-items:center; justify-content:center; padding: 18px; z-index: 2000;}
+        .tmg-modal{width: min(780px, 100%); max-height: 85vh; background:#fff; border-radius: 24px; box-shadow: 0 28px 90px rgba(15,23,42,.18); border:1px solid rgba(148,163,184,.22); overflow:hidden; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;}
+        .tmg-modal-head{padding:22px 22px 18px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; border-bottom:1px solid rgba(148,163,184,.18); background: linear-gradient(180deg, rgba(99,102,241,.06), rgba(255,255,255,.00));}
+        .tmg-modal-title{font-weight:800;font-size:20px;color:#111827;}
+        .tmg-modal-sub{margin-top:6px;font-weight:500;color:#4b5563;font-size:13px;}
+        .tmg-modal-close{border:none;background:transparent;font-size:22px;line-height:1;color:#6b7280; cursor:pointer; padding:2px 8px;}
+        .tmg-modal-body{padding:20px 22px 22px; overflow-y:auto; max-height: calc(85vh - 112px);}
+        .tmg-form-grid{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:18px; align-items:start;}
+        .tmg-field{display:flex; flex-direction:column; gap:8px;}
+        .tmg-field-span{grid-column: 1 / -1;}
+        .tmg-field label{font-size:13px; font-weight:700; color:#374151;}
+        .tmg-field input,
+        .tmg-field select{border:1px solid #d1d5db; border-radius:14px; background:#f8fafc; color:#111827; min-height:46px; padding:12px 14px; font-size:14px; outline:none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;}
+        .tmg-field input:focus,
+        .tmg-field select:focus{border-color:#7c3aed; background:#fff; box-shadow: 0 0 0 4px rgba(124,58,237,.12);}
+        .tmg-form-grid .tmg-field:nth-child(odd) input,
+        .tmg-form-grid .tmg-field:nth-child(odd) select{min-width:0;}
+        .tmg-avatar-preview{width: 88px; height: 88px; border-radius: 18px; border: 1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;}
+        .tmg-avatar-preview img{width:100%; height:100%; object-fit:cover;}
+        .tmg-avatar-placeholder{color:#6b7280; font-size:13px; text-align:center;}
+        .tmg-server-error{margin-top:12px; padding:12px 14px; border-radius:14px; background:#fee2e2; color:#991b1b; font-weight:700;}
+        .tmg-modal-actions{padding:18px 22px 20px; border-top:1px solid rgba(148,163,184,.18); display:flex; justify-content:flex-end; gap:12px; flex-wrap:wrap;}
+        .tmg-btn-ghost, .tmg-btn-primary{min-width:110px; height:44px; border-radius:12px; font-weight:700; letter-spacing:.01em;}
+        .tmg-btn-ghost{border:1px solid #cbd5e1; background:#ffffff; color:#1f2937;}
+        .tmg-btn-ghost:hover{background:#f8fafc;}
+        .tmg-btn-primary{border:none; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; box-shadow:0 12px 30px rgba(79,70,229,.18);}
+        .tmg-btn-primary:hover{opacity:.95;}
+        @media (max-width: 760px) { .tmg-form-grid{grid-template-columns: 1fr;} .tmg-modal{width: min(100%, 100%);} }
+      `}</style>
     <div className="tmg-modal-backdrop" role="dialog" aria-modal="true">
       <div className="tmg-modal">
         <div className="tmg-modal-head">
@@ -251,6 +282,7 @@ function TrainerModal({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -2,19 +2,37 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Eye, Pencil, Trash2, X, CalendarClock, MapPin } from 'lucide-react';
 
 import { listSlots, createSlot, updateSlot, deleteSlot } from '../../services/slotService';
+import { listTrainers, createTrainer } from '../../services/trainerService';
+import TrainerModal from './TrainerModal';
 
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
 const COURSES = ['Artificial Intelligence', 'Web Development', 'Python Programming', 'Data Science', 'Cyber Security', 'UI/UX Design', 'Graphic Design'];
-const TRAINERS = ['Ali Raza', 'Sana Khan', 'Usman Ali', 'Fatima Noor', 'Bilal Ahmed'];
 const CAMPUSES = ['Sukkur Campus', 'Karachi Campus', 'Lahore Campus', 'Islamabad Campus', 'Multan Campus'];
 const CITIES = CAMPUSES.map((c) => c.replace(' Campus', ''));
-
+const ADD_TRAINER_OPTION = '__add_new_trainer__';
 
 const GRID = '104px 1.5fr 1.1fr 1.2fr 1.4fr 96px 92px 92px';
 
-const emptyForm = { course: COURSES[0], trainer: TRAINERS[0], campus: CAMPUSES[0], days: 'Mon, Wed, Fri', time: '09:00 AM - 11:00 AM', seats: 30 };
+const tmgStyles = `
+  .tmg-modal-backdrop{position:fixed; inset:0; background: rgba(17, 12, 58, .55); display:flex; align-items:center; justify-content:center; padding: 18px; z-index: 2000;}
+  .tmg-modal{width: min(760px, 100%); max-height: 500px; background:#fff; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.28); border:1px solid rgba(108,92,231,.15); overflow:hidden;}
+  .tmg-modal-sm{width: min(520px, 100%);}
+  .tmg-modal-wide{width: min(900px, 100%);}
+  .tmg-modal-head{padding:16px 16px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; border-bottom:1px solid rgba(108,92,231,.12); background: linear-gradient(180deg, rgba(108,92,231,.06), rgba(108,92,231,.00));}
+  .tmg-modal-title{font-weight:1000;font-size:16px;color:#1f1a3a;}
+  .tmg-modal-sub{margin-top:5px;font-weight:800;color:#6b6f86;font-size:12.5px;}
+  .tmg-modal-close{border:none;background:transparent;font-size:24px;line-height:1;color:#6b6f86; cursor:pointer; padding:2px 8px;}
+  .tmg-modal-body{padding:16px 16px 18px; overflow-y:auto; max-height: calc(500px - 113px);}
+  .tmg-form-grid{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; align-items:start;}
+  .tmg-field{display:flex;flex-direction:column; gap:8px;}
+  .tmg-error{color:#ff4757; font-weight:900; font-size:11.5px; margin-top: -3px;}
+  .tmg-modal-actions{padding:14px 16px; border-top:1px solid rgba(108,92,231,.12); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;}
+  .tmg-form-grid{grid-template-columns: 1fr;}
+`;
+
+const emptyForm = { course: COURSES[0], trainer: '', campus: CAMPUSES[0], days: 'Mon, Wed, Fri', time: '09:00 AM - 11:00 AM', seats: 30 };
 
 export default function AdminSlots({ city }) {
   const [rows, setRows] = useState([]);
@@ -30,24 +48,40 @@ export default function AdminSlots({ city }) {
   const [form, setForm] = useState(emptyForm);
   const [toast, setToast] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [trainers, setTrainers] = useState([]);
+  const [trainerModalOpen, setTrainerModalOpen] = useState(false);
+  const [trainerModalMode, setTrainerModalMode] = useState('add');
+  const [trainerModalInitialValues, setTrainerModalInitialValues] = useState(null);
+  const [trainerModalLoading, setTrainerModalLoading] = useState(false);
+  const [trainerModalError, setTrainerModalError] = useState('');
 
   useEffect(() => {
-    async function loadSlots() {
+    async function loadData() {
       try {
-        const slotData = await listSlots();
+        const [slotData, trainerData] = await Promise.all([listSlots(), listTrainers()]);
         setRows(slotData || []);
+        setTrainers(trainerData || []);
+        if (!form.trainer && trainerData?.length) {
+          setForm((prev) => ({ ...prev, trainer: trainerData[0].fullName }));
+        }
       } catch (err) {
         setRows([]);
+        setTrainers([]);
       } finally {
         setLoading(false);
       }
     }
-    loadSlots();
+    loadData();
   }, []);
 
   useEffect(() => { setCityFilter(city || 'All Cities'); }, [city]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 2200); return () => clearTimeout(t); }, [toast]);
   useEffect(() => { setPage(1); }, [search, cityFilter, courseFilter, statusFilter]);
+
+  const trainerOptions = useMemo(() => {
+    const names = trainers.map((t) => t.fullName).filter(Boolean);
+    return [...new Set(names)];
+  }, [trainers]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -66,8 +100,72 @@ export default function AdminSlots({ city }) {
 
   const campusOptions = city ? CAMPUSES.filter((c) => c === `${city} Campus`) : CAMPUSES;
 
-  const openAdd = () => { setForm(city ? { ...emptyForm, campus: `${city} Campus` } : emptyForm); setModal({ mode: 'add' }); };
-  const openEdit = (r) => { setForm({ ...r }); setModal({ mode: 'edit', id: r.slotId }); };
+  const openAdd = () => {
+    setForm(city ? { ...emptyForm, campus: `${city} Campus`, trainer: trainerOptions[0] || '' } : { ...emptyForm, trainer: trainerOptions[0] || '' });
+    setModal({ mode: 'add' });
+  };
+
+  const openEdit = (r) => {
+    setForm({ ...r });
+    setModal({ mode: 'edit', id: r.slotId });
+  };
+
+  const openTrainerModal = () => {
+    setTrainerModalError('');
+    setTrainerModalMode('add');
+    setTrainerModalInitialValues({
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      campus: city ? `${city} Campus` : CAMPUSES[0],
+      gender: '',
+      qualification: '',
+      experience: '',
+      joiningDate: '',
+      salary: '',
+      address: '',
+      status: 'Active',
+      profilePictureUrl: null,
+      profilePicturePreview: null,
+    });
+    setTrainerModalOpen(true);
+  };
+
+  const handleTrainerSaved = async (formData, isValid) => {
+    if (!isValid) {
+      setTrainerModalError('Please fix validation errors.');
+      return;
+    }
+
+    setTrainerModalLoading(true);
+    setTrainerModalError('');
+    try {
+      const payload = {
+        fullName: formData.fullName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        campus: formData.campus,
+        gender: formData.gender,
+        qualification: formData.qualification,
+        experience: Number(formData.experience),
+        joiningDate: formData.joiningDate,
+        salary: Number(formData.salary),
+        address: formData.address,
+        status: formData.status,
+        profilePictureUrl: formData.profilePictureUrl || null,
+      };
+      const createdTrainer = await createTrainer(payload);
+      setTrainers((prev) => [createdTrainer, ...prev]);
+      setForm((prev) => ({ ...prev, trainer: createdTrainer.fullName }));
+      window.dispatchEvent(new CustomEvent('trainerAdded', { detail: createdTrainer }));
+      setTrainerModalOpen(false);
+      setToast(`Trainer ${createdTrainer.fullName} added.`);
+    } catch (err) {
+      setTrainerModalError(err?.response?.data?.message || 'Unable to add trainer.');
+    } finally {
+      setTrainerModalLoading(false);
+    }
+  };
 
   const save = async () => {
     if (!form.time.trim() || !form.days.trim() || Number(form.seats) <= 0) {
@@ -76,37 +174,26 @@ export default function AdminSlots({ city }) {
     }
 
     try {
+      const trainerName = form.trainer === ADD_TRAINER_OPTION ? '' : form.trainer;
+      const payload = {
+        course: form.course,
+        trainer: trainerName,
+        campus: form.campus,
+        days: form.days,
+        time: form.time,
+        seats: Number(form.seats),
+        classType: form.classType,
+        gender: form.gender,
+        start: form.start,
+        end: form.end,
+        whatsapp: form.whatsapp,
+      };
+
       if (modal.mode === 'add') {
-        const payload = {
-          course: form.course,
-          trainer: form.trainer,
-          campus: form.campus,
-          days: form.days,
-          time: form.time,
-          seats: Number(form.seats),
-          classType: form.classType,
-          gender: form.gender,
-          start: form.start,
-          end: form.end,
-          whatsapp: form.whatsapp,
-        };
         const created = await createSlot(payload);
         setRows((p) => [created, ...p]);
         setToast('Slot created successfully.');
       } else {
-        const payload = {
-          course: form.course,
-          trainer: form.trainer,
-          campus: form.campus,
-          days: form.days,
-          time: form.time,
-          seats: Number(form.seats),
-          classType: form.classType,
-          gender: form.gender,
-          start: form.start,
-          end: form.end,
-          whatsapp: form.whatsapp,
-        };
         const updated = await updateSlot(modal.id, payload);
         setRows((p) => p.map((r) => (r.slotId === modal.id ? updated : r)));
         setToast('Slot updated.');
@@ -132,6 +219,7 @@ export default function AdminSlots({ city }) {
 
   return (
     <div className="ap-page">
+      <style>{tmgStyles}</style>
       <div className="acard" style={{ padding: 0 }}>
         <div className="acard-head" style={{ padding: '18px 18px 14px', marginBottom: 0 }}>
           <div>
@@ -254,7 +342,18 @@ export default function AdminSlots({ city }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div className="ap-field">
                       <label>Trainer</label>
-                      <select value={form.trainer} onChange={(e) => setForm({ ...form, trainer: e.target.value })}>{TRAINERS.map((t) => <option key={t}>{t}</option>)}</select>
+                      <select value={form.trainer} onChange={(e) => {
+                        const selection = e.target.value;
+                        if (selection === ADD_TRAINER_OPTION) {
+                          openTrainerModal();
+                          setForm((prev) => ({ ...prev, trainer: trainerOptions[0] || '' }));
+                          return;
+                        }
+                        setForm({ ...form, trainer: selection });
+                      }}>
+                        {trainerOptions.map((t) => <option key={t} value={t}>{t}</option>)}
+                        <option value={ADD_TRAINER_OPTION}>Add new trainer</option>
+                      </select>
                     </div>
                     <div className="ap-field">
                       <label>Campus</label>
@@ -312,6 +411,16 @@ export default function AdminSlots({ city }) {
         </div>
       )}
 
+      <TrainerModal
+        open={trainerModalOpen}
+        mode={trainerModalMode}
+        initialValues={trainerModalInitialValues}
+        campuses={CAMPUSES}
+        loading={trainerModalLoading}
+        serverError={trainerModalError}
+        onClose={() => setTrainerModalOpen(false)}
+        onSubmit={handleTrainerSaved}
+      />
       {toast && <div className="ap-toast"><CalendarClock size={16} /> {toast}</div>}
     </div>
   );

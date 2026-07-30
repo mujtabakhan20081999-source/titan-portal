@@ -57,8 +57,18 @@ function Trainers() {
         if (isMounted) setLoading(false);
       }
     })();
+
+    const onTrainerAdded = (event) => {
+      const trainer = event.detail;
+      if (trainer && trainer._id) {
+        setTrainers((prev) => [trainer, ...prev]);
+      }
+    };
+    window.addEventListener('trainerAdded', onTrainerAdded);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('trainerAdded', onTrainerAdded);
     };
   }, []);
 
@@ -111,7 +121,7 @@ function Trainers() {
         salary: Number(form.salary),
         address: form.address,
         status: form.status,
-        profilePictureUrl: form.profilePicturePreview || form.profilePictureUrl || null,
+        profilePictureUrl: form.profilePictureUrl || null,
       };
 
       if (modalMode === 'add') {
