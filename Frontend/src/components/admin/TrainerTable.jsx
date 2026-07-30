@@ -51,9 +51,10 @@ function TrainerTable({
     const dir = sortDir === 'asc' ? 1 : -1;
 
     const getVal = (t) => {
+      const trainerId = t._id || t.id || '';
       switch (sortKey) {
         case 'id':
-          return t.id;
+          return trainerId;
         case 'fullName':
           return t.fullName;
         case 'email':
@@ -96,6 +97,11 @@ function TrainerTable({
   const sortIndicator = (key) => {
     if (sortKey !== key) return '';
     return sortDir === 'asc' ? '▲' : '▼';
+  };
+
+  const formatId = (id) => {
+    if (!id) return '';
+    return id.toString().slice(-5);
   };
 
   const columns = [
@@ -187,8 +193,8 @@ function TrainerTable({
             )}
 
             {paginated.map((t) => (
-              <tr key={t.id} className="tmg-tr-row" onDoubleClick={() => onView(t)}>
-                <td>{t.id}</td>
+              <tr key={t._id || t.id} className="tmg-tr-row" onDoubleClick={() => onView(t)}>
+                <td>{formatId(t._id || t.id)}</td>
                 <td>
                   <div className="tmg-name-cell">
                     <div className="tmg-avatar">{t.fullName.split(' ').map((w) => w[0]).slice(0, 2).join('')}</div>

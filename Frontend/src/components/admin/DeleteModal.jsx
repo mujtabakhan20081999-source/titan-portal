@@ -26,7 +26,7 @@ function DeleteModal({ open, trainer, onClose, onConfirm }) {
 
         <div className="tmg-modal-actions">
           <button className="tmg-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="tmg-btn-danger" onClick={() => onConfirm(trainer.id)}>Delete</button>
+          <button className="tmg-btn-danger" onClick={() => onConfirm(trainer._id || trainer.id)}>Delete</button>
         </div>
       </div>
     </div>

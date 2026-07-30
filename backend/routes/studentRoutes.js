@@ -92,14 +92,27 @@ router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, 
 
 router.put('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const student = await Student.findById(req.params.id);
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
-    res.json({ success: true, data: student });
+
+    const updateData = { ...req.body };
+    if (updateData.email) {
+      updateData.email = String(updateData.email).trim().toLowerCase();
+    }
+
+    await User.findByIdAndUpdate(student.user, {
+      fullName: updateData.name || student.name,
+      email: updateData.email || student.email,
+      campus: updateData.city || student.city,
+    });
+
+    const updatedStudent = await Student.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+    res.json({ success: true, data: updatedStudent });
   } catch (error) {
     next(error);
   }

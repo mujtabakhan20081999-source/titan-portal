@@ -54,10 +54,13 @@ function Students() {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [form, setForm] = useState({ ...emptyStudent });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [deleteStudentId, setDeleteStudentId] = useState(null);
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -117,13 +120,37 @@ function Students() {
   };
 
   const openAddModal = () => {
+    setModalMode('add');
+    setSelectedStudent(null);
     setForm({ ...emptyStudent, roll: `STU-${Date.now().toString().slice(-6)}` });
     setFormError('');
     setSuccessMsg('');
     setModalOpen(true);
   };
 
-  const handleAddStudent = async () => {
+  const openEditModal = (student) => {
+    setModalMode('edit');
+    setSelectedStudent(student);
+    setForm({
+      roll: student.roll || '',
+      name: student.name || '',
+      father: student.father || '',
+      cnic: student.cnic || '',
+      dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
+      phone: student.phone || '',
+      email: student.email || '',
+      city: student.city || 'Sukkur',
+      course: student.course || COURSES_LIST[0],
+      meta: student.meta || '',
+      status: student.status || 'Enrolled',
+      pay: student.pay || 'Not Generated',
+    });
+    setFormError('');
+    setSuccessMsg('');
+    setModalOpen(true);
+  };
+
+  const handleSaveStudent = async () => {
     if (!form.name.trim() || !form.roll.trim() || !form.dateOfBirth) {
       setFormError('Name, Student ID and Date of Birth are required');
       return;
@@ -137,36 +164,48 @@ function Students() {
       setFormError('Please enter a valid email address');
       return;
     }
+
+    setSaving(true);
+    setFormError('');
+
+    try {
+      if (modalMode === 'edit' && selectedStudent) {
+        const updated = await updateStudent(selectedStudent._id, form);
+        setRows((prev) => prev.map((row) => (row._id === updated._id ? updated : row)));
+        setSuccessMsg(`✅ Student "${updated.name}" updated successfully.`);
+      } else {
+        const created = await createStudent(form);
+        setRows((prev) => [created, ...prev]);
+        setSuccessMsg(`✅ Student "${created.name}" (${created.roll}) added successfully.`);
+      }
+      setModalOpen(false);
+      setSelectedStudent(null);
+      setForm({ ...emptyStudent });
+    } catch (err) {
+      setFormError(err?.response?.data?.message || err.message || 'Failed to save student');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDeleteStudent = async (studentId) => {
+    if (!studentId) return;
+    const confirmed = window.confirm('Are you sure you want to delete this student? This will remove the record from the database.');
+    if (!confirmed) {
+      return;
+    }
+
     setSaving(true);
     setFormError('');
     try {
-      // 1. Create the student record in DB
-      const created = await createStudent(form);
-      
-      // 2. Also create a User account so student can login to their portal
-      try {
-        await Promise.resolve(
-          form.name.trim(),
-          form.email.trim(),
-          form.password || 'student123',
-          'student',
-          form.city
-        );
-      } catch (userErr) {
-        // If user already exists, that's okay — just log it
-        console.warn('User registration (non-blocking):', userErr?.response?.data?.message || userErr.message);
-      }
-      
-      setRows((prev) => [created, ...prev]);
-      setSuccessMsg(`✅ Student "${created.name}" (${created.roll}) added successfully! 
-        Login credentials: Email: ${form.email} / Password: ${form.password || 'student123'}
-        Student can now login and access their portal. Also visible in Sub-Admin panel.`);
-      setModalOpen(false);
-      setForm({ ...emptyStudent });
+      await deleteStudent(studentId);
+      setRows((prev) => prev.filter((row) => row._id !== studentId));
+      setSuccessMsg('✅ Student deleted successfully.');
     } catch (err) {
-      setFormError(err?.response?.data?.message || err.message || 'Failed to add student');
+      setFormError(err?.response?.data?.message || err.message || 'Failed to delete student');
     } finally {
       setSaving(false);
+      setDeleteStudentId(null);
     }
   };
 
@@ -297,7 +336,8 @@ function Students() {
                   <span className={`badge ${payBadge[s.pay] || 'badge-grey'}`}>{s.pay}</span>
                   <div className="atable-actions">
                     <button title="View"><Eye size={16} /></button>
-                    <button title="Edit"><Pencil size={15} /></button>
+                    <button title="Edit" onClick={() => openEditModal(s)}><Pencil size={15} /></button>
+                    <button title="Delete" onClick={() => confirmDeleteStudent(s._id)} style={{ color: '#ff4757' }}><X size={15} /></button>
                   </div>
                 </div>
               ))
@@ -346,8 +386,14 @@ function Students() {
           <div className="tmg-modal student-add-modal" style={{ width: 'min(680px, 100%)' }} onClick={(e) => e.stopPropagation()}>
             <div className="tmg-modal-head">
               <div>
-                <span className="tmg-modal-title">Add New Student</span>
-                <div className="tmg-modal-sub">Student will be saved to database and visible everywhere (Admin + Sub-Admin)</div>
+                <span className="tmg-modal-title">
+                  {modalMode === 'edit' ? 'Edit Student' : 'Add New Student'}
+                </span>
+                <div className="tmg-modal-sub">
+                  {modalMode === 'edit'
+                    ? 'Update the student record and save changes to the database.'
+                    : 'Student will be saved to database and visible everywhere (Admin + Sub-Admin)'}
+                </div>
               </div>
               <button className="tmg-modal-close" onClick={() => setModalOpen(false)}><X size={20} /></button>
             </div>
@@ -420,8 +466,8 @@ function Students() {
             </div>
             <div className="tmg-modal-actions">
               <button className="tmg-btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-              <button className="tmg-btn-primary" onClick={handleAddStudent} disabled={saving}>
-                {saving ? 'Saving...' : <><Plus size={15} /> Add Student</>}
+              <button className="tmg-btn-primary" onClick={handleSaveStudent} disabled={saving}>
+                {saving ? 'Saving...' : modalMode === 'edit' ? 'Update Student' : <><Plus size={15} /> Add Student</>}
               </button>
             </div>
           </div>

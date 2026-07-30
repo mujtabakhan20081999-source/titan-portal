@@ -23,7 +23,7 @@ function dayRange(value) {
 }
 
 // @route   POST /api/auth/create-password
-// A student verifies their roll number + DOB; a teacher verifies email + DOB.
+// A student verifies their CNIC + DOB; a teacher verifies email + DOB.
 router.post('/create-password', async (req, res, next) => {
   try {
     const { role, identifier, dateOfBirth, password } = req.body;
@@ -40,7 +40,7 @@ router.post('/create-password', async (req, res, next) => {
     }
 
     const account = role === 'student'
-      ? await Student.findOne({ roll: String(identifier).trim(), dateOfBirth: dob })
+      ? await Student.findOne({ cnic: String(identifier).trim(), dateOfBirth: dob })
       : await Trainer.findOne({ email: String(identifier).trim().toLowerCase(), dateOfBirth: dob });
 
     if (!account || !account.user) {
@@ -85,7 +85,7 @@ router.post('/login', async (req, res, next) => {
     if (isEmail) {
       user = await User.findOne({ email: identifier.toLowerCase().trim() }).select('+password');
     } else {
-      student = await Student.findOne({ roll: String(identifier).trim() });
+      student = await Student.findOne({ cnic: String(identifier).trim() });
       if (student && student.user) {
         user = await User.findById(student.user).select('+password');
       }

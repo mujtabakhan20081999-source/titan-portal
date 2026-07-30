@@ -367,8 +367,10 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
   const [loading,      setLoading]      = useState(false);
   const [shake,        setShake]        = useState(false);
 
-  const idLabel       = 'Email Address';
-  const idPlaceholder = 'Enter your registered email address';
+  const idLabel = isTeacher ? 'Email Address' : 'CNIC';
+  const idPlaceholder = isTeacher
+    ? 'Enter your registered email address'
+    : 'Enter your registered CNIC';
   const loginTitle    = isTeacher ? 'Teacher Login'                     : 'Student Login';
   const switchLabel   = isTeacher ? 'Student Login'                     : 'Teacher Login';
 
@@ -400,7 +402,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
       localStorage.setItem('user', JSON.stringify(result.user));
       if (onLogin) onLogin(result.user);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Invalid email or password.');
+      setError(err?.response?.data?.message || (isTeacher ? 'Invalid email or password.' : 'Invalid CNIC or password.'));
       triggerShake();
     } finally {
       setLoading(false);
@@ -544,7 +546,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
             <p className="login-form-sub">
               {isTeacher
                 ? 'Enter the email address and date of birth provided to the administration.'
-                : 'Enter the student ID and date of birth provided to the administration.'}
+                : 'Enter the registered CNIC and date of birth provided to the administration.'}
             </p>
 
             <form onSubmit={handleCreatePassword} className={shake ? 'login-shake' : ''}>
@@ -553,14 +555,14 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
 
               <div className="login-field-group">
                 <label className="login-label">
-                  {isTeacher ? 'Email Address' : 'Student ID'} <span className="login-required">*</span>
+                  {isTeacher ? 'Email Address' : 'CNIC'} <span className="login-required">*</span>
                 </label>
                 <div className="login-input-wrap">
                   <span className="login-input-icon"><PersonIcon /></span>
                   <input
                     type={isTeacher ? 'email' : 'text'}
                     className="login-input"
-                    placeholder={isTeacher ? 'Enter your registered email address' : 'Enter your student ID'}
+                    placeholder={isTeacher ? 'Enter your registered email address' : 'Enter your registered CNIC'}
                     value={createForm.identifier}
                     onChange={e => { setError(''); setCreateForm(f => ({ ...f, identifier: e.target.value })); }}
                   />

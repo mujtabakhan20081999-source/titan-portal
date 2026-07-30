@@ -16,7 +16,6 @@ function TrainerModal({
       fullName: '',
       email: '',
       phoneNumber: '',
-      employeeId: '',
       campus: '',
       gender: '',
       qualification: '',
@@ -46,7 +45,6 @@ function TrainerModal({
       'fullName',
       'email',
       'phoneNumber',
-      'employeeId',
       'campus',
       'gender',
       'qualification',
@@ -117,7 +115,7 @@ function TrainerModal({
             className="tmg-form"
             onSubmit={(e) => {
               e.preventDefault();
-              setTouched((t) => ({ ...t, fullName: true, email: true, phoneNumber: true, employeeId: true }));
+              setTouched((t) => ({ ...t, fullName: true, email: true, phoneNumber: true }));
               onSubmit(form, isValid);
             }}
           >
@@ -154,18 +152,7 @@ function TrainerModal({
                 )}
               </div>
 
-              <div className="tmg-field">
-                <label>Employee ID *</label>
-                <input
-                  value={form.employeeId}
-                  onChange={handleChange('employeeId')}
-                  onBlur={() => setTouched((t) => ({ ...t, employeeId: true }))}
-                  disabled={mode === 'edit'}
-                />
-                {touched.employeeId && errors.employeeId && <div className="tmg-error">{errors.employeeId}</div>}
-              </div>
-
-              <div className="tmg-field">
+                  <div className="tmg-field">
                 <label>Campus *</label>
                 <select value={form.campus} onChange={handleChange('campus')} onBlur={() => setTouched((t) => ({ ...t, campus: true }))}>
                   <option value="">Select campus</option>

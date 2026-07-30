@@ -12,7 +12,6 @@ function normalizeTrainerForForm(t) {
     fullName: t.fullName || '',
     email: t.email || '',
     phoneNumber: t.phoneNumber || '',
-    employeeId: t.employeeId || '',
     campus: t.campus || '',
     gender: t.gender || '',
     qualification: t.qualification || '',
@@ -70,7 +69,6 @@ function Trainers() {
       fullName: '',
       email: '',
       phoneNumber: '',
-      employeeId: '',
       campus: campuses[0] || '',
       gender: '',
       qualification: '',
@@ -88,7 +86,7 @@ function Trainers() {
   const openEdit = (t) => {
     setServerError('');
     setModalMode('edit');
-    setModalInitialValues({ ...normalizeTrainerForForm(t), id: t.id });
+    setModalInitialValues({ ...normalizeTrainerForForm(t), id: t._id || t.id });
     setModalOpen(true);
   };
 
@@ -105,7 +103,6 @@ function Trainers() {
         fullName: form.fullName,
         email: form.email,
         phoneNumber: form.phoneNumber,
-        employeeId: form.employeeId,
         campus: form.campus,
         gender: form.gender,
         qualification: form.qualification,
@@ -122,7 +119,11 @@ function Trainers() {
         setTrainers((prev) => [created, ...prev]);
       } else {
         const updated = await updateTrainer(modalInitialValues?.id, payload);
-        setTrainers((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+        setTrainers((prev) => prev.map((x) => {
+          const xId = x._id || x.id;
+          const updatedId = updated._id || updated.id;
+          return xId === updatedId ? updated : x;
+        }));
       }
 
       setModalOpen(false);
@@ -345,27 +346,28 @@ const tmgStyles = `
 
   /* Modal */
   .tmg-modal-backdrop{position:fixed; inset:0; background: rgba(17, 12, 58, .55); display:flex; align-items:center; justify-content:center; padding: 18px; z-index: 999;}
-  .tmg-modal{width: min(860px, 100%); background:#fff; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.28); border:1px solid rgba(108,92,231,.15); overflow:hidden;}
+  .tmg-modal{width: min(760px, 100%); max-height: 500px; background:#fff; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.28); border:1px solid rgba(108,92,231,.15); overflow:hidden;}
   .tmg-modal-sm{width: min(520px, 100%);} 
-  .tmg-modal-wide{width: min(980px, 100%);} 
+  .tmg-modal-wide{width: min(900px, 100%);} 
   .tmg-modal-head{padding:16px 16px; display:flex; align-items:flex-start; justify-content:space-between; gap:14px; border-bottom:1px solid rgba(108,92,231,.12); background: linear-gradient(180deg, rgba(108,92,231,.06), rgba(108,92,231,.00));}
   .tmg-modal-title{font-weight:1000;font-size:16px;color:#1f1a3a;}
   .tmg-modal-sub{margin-top:5px;font-weight:800;color:#6b6f86;font-size:12.5px;}
   .tmg-modal-close{border:none;background:transparent;font-size:24px;line-height:1;color:#6b6f86; cursor:pointer; padding:2px 8px;}
-  .tmg-modal-body{padding:16px 16px 18px;}
+  .tmg-modal-body{padding:16px 16px 18px; overflow-y:auto; max-height: calc(500px - 113px);}
 
-  .tmg-form-grid{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;}
-  .tmg-field{display:flex; flex-direction:column; gap:7px;}
+  .tmg-form-grid{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:16px; align-items:start;}
+  .tmg-field{display:flex; flex-direction:column; gap:8px; min-width:0;}
   .tmg-field-span{grid-column: 1 / -1;}
   .tmg-field label{font-size:12.5px; font-weight:950; color:#2b2750;}
-  .tmg-field input, .tmg-field select{border:1px solid rgba(108,92,231,.18); border-radius: 12px; padding:10px 12px; outline:none; font-weight:800; color:#1f1a3a; background:#fff;}
-  .tmg-field input:focus, .tmg-field select:focus{border-color: rgba(108,92,231,.55); box-shadow: 0 0 0 4px rgba(108,92,231,.12);} 
+  .tmg-field input, .tmg-field select, .tmg-field input[type="file"]{width:100%; border:1px solid rgba(108,92,231,.18); border-radius: 12px; padding:10px 12px; outline:none; font-weight:800; color:#1f1a3a; background:#fff; box-sizing:border-box;}
+  .tmg-field input[type="file"]{padding:12px 12px 10px;}
+  .tmg-field input:focus, .tmg-field select:focus, .tmg-field input[type="file"]:focus{border-color: rgba(108,92,231,.55); box-shadow: 0 0 0 4px rgba(108,92,231,.12);} 
   .tmg-error{color:#ff4757; font-weight:900; font-size:11.5px; margin-top: -3px;}
   .tmg-server-error{margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,71,87,.10); border:1px solid rgba(255,71,87,.25); color:#d32f2f; font-weight:950; font-size:12.5px;}
 
-  .tmg-avatar-preview{margin-top:6px;}
-  .tmg-avatar-preview img{width:58px;height:58px;border-radius: 16px; object-fit:cover; border:1px solid rgba(108,92,231,.2);} 
-  .tmg-avatar-placeholder{width:58px;height:58px;border-radius: 16px; border:1px dashed rgba(108,92,231,.28); display:grid; place-items:center; color:#6b6f86; font-weight:900; font-size:11px; background: rgba(108,92,231,.04);} 
+  .tmg-avatar-preview{margin-top:8px;}
+  .tmg-avatar-preview img{width:72px;height:72px;border-radius: 18px; object-fit:cover; border:1px solid rgba(108,92,231,.2);} 
+  .tmg-avatar-placeholder{width:72px;height:72px;border-radius: 18px; border:1px dashed rgba(108,92,231,.28); display:grid; place-items:center; color:#6b6f86; font-weight:900; font-size:11px; background: rgba(108,92,231,.04);} 
 
   .tmg-modal-actions{padding:14px 16px; border-top:1px solid rgba(108,92,231,.12); display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;}
   .tmg-btn-primary{background: var(--tmg-purple); color:#fff; border:none; border-radius: 14px; padding:11px 16px; font-weight:1000; box-shadow: 0 16px 34px rgba(108,92,231,.25); transition: transform .18s ease, box-shadow .18s ease;}
