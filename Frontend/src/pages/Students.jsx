@@ -165,19 +165,35 @@ function Students() {
       return;
     }
 
+    const payload = {
+      roll: form.roll.trim(),
+      name: form.name.trim(),
+      father: form.father.trim(),
+      cnic: form.cnic.trim(),
+      dateOfBirth: form.dateOfBirth,
+      phone: form.phone.trim(),
+      email: form.email.trim().toLowerCase(),
+      city: form.city,
+      course: form.course,
+      meta: form.meta.trim(),
+      status: form.status,
+      pay: form.pay,
+    };
+
     setSaving(true);
     setFormError('');
 
     try {
       if (modalMode === 'edit' && selectedStudent) {
-        const updated = await updateStudent(selectedStudent._id, form);
+        const updated = await updateStudent(selectedStudent._id, payload);
         setRows((prev) => prev.map((row) => (row._id === updated._id ? updated : row)));
         setSuccessMsg(`✅ Student "${updated.name}" updated successfully.`);
       } else {
-        const created = await createStudent(form);
+        const created = await createStudent(payload);
         setRows((prev) => [created, ...prev]);
         setSuccessMsg(`✅ Student "${created.name}" (${created.roll}) added successfully.`);
       }
+      await fetchStudents();
       setModalOpen(false);
       setSelectedStudent(null);
       setForm({ ...emptyStudent });
