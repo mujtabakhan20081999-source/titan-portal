@@ -5,6 +5,11 @@ export async function listSlots() {
   return data.data;
 }
 
+export async function listMySlots() {
+  const { data } = await api.get('/slots/mine');
+  return data;
+}
+
 export async function createSlot(payload) {
   const { data } = await api.post('/slots', payload);
   return data.data;

@@ -106,89 +106,80 @@ function MyCourses() {
         {loadError && <div className="cl-card" style={{ color: '#b91c1c' }}>{loadError}</div>}
         {!student && !loadError && <div className="cl-card">Loading your course details…</div>}
         {student && (
-          <>
-            <div className="cl-summary-grid">
-              <article className="cl-summary-card attendance-card">
-                <div className="cl-summary-card-title">Attendance</div>
-                <div className="cl-summary-card-value">{attendancePercent}%</div>
-                <div className="cl-summary-card-meta">{presentCount}/{totalSessions || 0} sessions present</div>
-              </article>
-              <article className="cl-summary-card fee-card">
-                <div className="cl-summary-card-title">Fee Status</div>
-                <div className="cl-summary-card-value">{feeStatus}</div>
-                <div className="cl-summary-card-meta">{feeStatus === 'Paid' ? 'No dues outstanding' : 'Pending fee action'}</div>
-              </article>
-              <article className="cl-summary-card course-card">
-                <div className="cl-summary-card-title">Program</div>
-                <div className="cl-summary-card-value">{student.course || 'Not assigned'}</div>
-                <div className="cl-summary-card-meta">{student.meta || 'Batch not assigned'}</div>
-              </article>
+          <article className={`cl-hero-card${ready ? ' ready' : ''}`}>
+            <div className="cl-hero-glow" aria-hidden="true" />
+
+            <div className="cl-hero-top">
+              <div className="cl-hero-identity">
+                <div className="cl-hero-avatar">{(student.name || 'S').split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()}</div>
+                <div>
+                  <p className="cl-hero-kicker">Welcome back</p>
+                  <h1 className="cl-hero-name">{student.name || 'Student'}</h1>
+                  <p className="cl-hero-sub">
+                    <FiMapPin size={14} />
+                    {student.campus || student.city || 'Campus'} · Roll {student.roll || '—'}
+                  </p>
+                </div>
+              </div>
+              <span className={`cl-hero-status ${courseStatus === 'Completed' ? 'done' : 'active'}`}>
+                {courseStatus}
+              </span>
             </div>
 
-            <article className="cl-card cl-course-card">
-              <div className="cl-course-head">
-                <div>
-                  <div className="cl-course-label">Current program</div>
-                  <h2 className="cl-course-title">{student.course || 'Course not assigned'}</h2>
-                  <p className="cl-course-subtitle">{student.city ? `${student.city} Campus · Roll ${student.roll || '0'}` : 'Campus not assigned'}</p>
-                </div>
-                <span className={`cl-course-pill ${courseStatus === 'Completed' ? 'completed' : 'enrolled'}`}>
-                  {courseStatus}
-                </span>
+            <div className="cl-hero-program">
+              <div>
+                <span className="cl-hero-label">Current program</span>
+                <h2>{student.course || 'Course not assigned'}</h2>
+                <p>{student.meta || student.batch || 'Batch not assigned'} · {student.slot || 'Slot pending'}</p>
               </div>
-
-              <div className="cl-course-details">
-                <div className="cl-course-detail">
-                  <span>Batch</span>
-                  <strong>{student.meta || 'Not assigned'}</strong>
-                </div>
-                <div className="cl-course-detail">
-                  <span>Roll</span>
-                  <strong>{student.roll || '0'}</strong>
-                </div>
-                <div className="cl-course-detail">
-                  <span>Payment</span>
-                  <strong>{feeStatus}</strong>
-                </div>
+              <div className="cl-hero-progress-ring" style={{ '--p': courseProgress }}>
+                <strong>{courseProgress}%</strong>
+                <span>Progress</span>
               </div>
+            </div>
 
-              <div className="cl-progress-block">
-                <div className="cl-progress-info">
-                  <span>Course progress</span>
-                  <strong>{courseProgress}% complete</strong>
-                </div>
-                <div className="cl-progress-track cl-course-progress-track">
-                  <div
-                    className="cl-progress-fill"
-                    style={{ width: ready ? `${courseProgress}%` : '0%' }}
-                  />
-                </div>
+            <div className="cl-hero-stats">
+              <div className="cl-hero-stat">
+                <span>Attendance</span>
+                <strong>{attendancePercent}%</strong>
+                <small>{presentCount}/{totalSessions || 0} sessions</small>
               </div>
-
-              <div className="cl-course-bottom">
-                <div>
-                  <span className="cl-course-metric-label">Sessions recorded</span>
-                  <strong>{totalSessions}</strong>
-                </div>
-                <div>
-                  <span className="cl-course-metric-label">Attendance rate</span>
-                  <strong>{attendancePercent}%</strong>
-                </div>
-                <div>
-                  <span className="cl-course-metric-label">Next action</span>
-                  <strong>{feeStatus === 'Paid' ? 'Keep learning' : 'Pay fees'}</strong>
-                </div>
+              <div className="cl-hero-stat">
+                <span>Fee status</span>
+                <strong className={feeStatus === 'Paid' ? 'ok' : 'warn'}>{feeStatus}</strong>
+                <small>{feeStatus === 'Paid' ? 'No dues outstanding' : 'Action needed'}</small>
               </div>
+              <div className="cl-hero-stat">
+                <span>Sessions</span>
+                <strong>{totalSessions}</strong>
+                <small>Recorded so far</small>
+              </div>
+              <div className="cl-hero-stat">
+                <span>Next step</span>
+                <strong>{feeStatus === 'Paid' ? 'Keep learning' : 'Pay fees'}</strong>
+                <small>{student.email || 'Student portal'}</small>
+              </div>
+            </div>
 
-              <button
-                type="button"
-                className="cl-view-btn"
-                onClick={() => navigate('/dashboard')}
-              >
-                <FiMousePointer size={18} /> View Details
+            <div className="cl-hero-bar-wrap">
+              <div className="cl-hero-bar-labels">
+                <span>Course completion</span>
+                <strong>{courseProgress}%</strong>
+              </div>
+              <div className="cl-hero-bar">
+                <div style={{ width: ready ? `${courseProgress}%` : '0%' }} />
+              </div>
+            </div>
+
+            <div className="cl-hero-actions">
+              <button type="button" className="cl-hero-btn primary" onClick={() => navigate('/dashboard')}>
+                <FiMousePointer size={17} /> Open Dashboard
               </button>
-            </article>
-          </>
+              <button type="button" className="cl-hero-btn ghost" onClick={() => navigate('/payment')}>
+                <FiAward size={17} /> {feeStatus === 'Paid' ? 'View Payments' : 'Pay Fees'}
+              </button>
+            </div>
+          </article>
         )}
       </div>
 

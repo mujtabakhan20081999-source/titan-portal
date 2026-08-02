@@ -284,8 +284,8 @@
 
 .login-tab {
   flex: 1;
-  padding: 20px 16px;
-  font-size: 14px;
+  padding: 18px 10px;
+  font-size: 13px;
   font-weight: 600;
   color: #9CA3AF;
   background: none;
@@ -309,12 +309,13 @@
   background: rgba(0,0,0,0.02);
 }
 .login-form-container {
-  padding: 36px 48px 40px;
+  padding: 28px 40px 32px;
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   animation: fadeUpIn 0.5s ease 0.12s both;
+  overflow-y: auto;
 }
 
 .login-form-title {
@@ -426,11 +427,97 @@
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
 }
 
 .login-forgot:hover {
   color: #F3C623;
   text-decoration: underline;
+}
+
+.login-forgot-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.login-forgot-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(10, 61, 145, 0.10), rgba(243, 198, 35, 0.12));
+  border: 1px solid rgba(10, 61, 145, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.login-forgot-icon-wrap svg {
+  stroke: #0A3D91;
+}
+
+.login-form-sub-tight {
+  margin-bottom: 22px;
+}
+
+.login-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.login-field-row .login-field-group {
+  margin-bottom: 18px;
+}
+
+.login-success-msg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #15803d;
+  margin-bottom: 14px;
+  animation: errorSlideIn 0.25s ease both;
+}
+
+.login-btn-back {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px;
+  background: transparent;
+  color: #0A3D91;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.22s ease, border-color 0.22s ease, transform 0.16s ease;
+}
+
+.login-btn-back:hover {
+  background: #f0f5ff;
+  border-color: #0A3D91;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 500px) {
+  .login-field-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 .login-btn-primary {
   width: 100%;

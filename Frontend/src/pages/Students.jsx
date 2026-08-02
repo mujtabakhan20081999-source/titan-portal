@@ -1,495 +1,566 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Download, Eye, Pencil, MapPin, Users, Building2, X } from 'lucide-react';
-import { listStudents, createStudent, updateStudent, deleteStudent } from '../services/studentService';
-
+import {
+  Search, Plus, Download, Eye, Pencil, Filter, FileText, CreditCard, Trash2,
+} from 'lucide-react';
+import {
+  listStudentsPaged,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+  getStudentDetails,
+  getStudentVouchers,
+  generateStudentVoucher,
+  downloadStudentsExport,
+  downloadStudentAudit,
+} from '../services/studentService';
+import { getHierarchy } from '../services/masterService';
 import '../styles/admin.css';
 
-const CITIES = ['Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan', 'Other'];
-
 const AV_COLORS = ['#2563eb', '#db2777', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#0A3D91'];
-
-const GRID = '92px 1.7fr 1.25fr 1.05fr 1.35fr 0.95fr 100px 118px 62px';
-
+const GRID = '88px minmax(140px,1.5fr) minmax(120px,1.1fr) minmax(100px,1fr) minmax(120px,1.2fr) minmax(110px,0.9fr) 95px 110px 176px';
 const payBadge = { Paid: 'badge-green', Pending: 'badge-amber', 'Not Generated': 'badge-grey' };
-const statusBadge = { Enrolled: 'badge-blue', Completed: 'badge-green', Dropped: 'badge-grey' };
+const statusBadge = {
+  Pending: 'badge-amber', Approved: 'badge-blue', Rejected: 'badge-grey',
+  Enrolled: 'badge-blue', Completed: 'badge-green', Dropped: 'badge-grey',
+  Passed: 'badge-green', Failed: 'badge-grey',
+};
 
-const COURSES_LIST = ['Artificial Intelligence', 'Web Development', 'Python Programming', 'Data Science', 'Cyber Security', 'UI/UX Design', 'Graphic Design', 'Digital Marketing', 'Mobile App Dev'];
+function initials(name = '') {
+  return name.split(' ').slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
+}
 
-function initials(name) {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('');
+function toDateInput(value) {
+  if (!value) return '';
+  return String(value).slice(0, 10);
 }
 
 const emptyStudent = {
-  roll: '',
-  name: '',
-  father: '',
-  cnic: '',
-  dateOfBirth: '',
-  phone: '',
-  email: '',
-  city: 'Sukkur',
-  course: COURSES_LIST[0],
-  meta: '',
-  status: 'Enrolled',
-  pay: 'Not Generated',
+  roll: '', name: '', father: '', fatherCnic: '', fatherPhone: '',
+  cnic: '', dateOfBirth: '', gender: 'Male', phone: '', email: '',
+  address: '', lastQualification: '', computerLevel: '', laptop: 'Yes',
+  photoUrl: null, country: 'Pakistan', city: 'Sukkur', campus: 'Sukkur Campus',
+  course: '', batch: 'Batch 1', slot: '', meta: '', sponsorship: '',
+  year: new Date().getFullYear(), status: 'Pending', pay: 'Pending',
 };
 
 function Students() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [error, setError] = useState('');
-
-  const [search, setSearch] = useState('');
-  const [cityFilter, setCityFilter] = useState('All Cities');
-  const [courseFilter, setCourseFilter] = useState('All Courses');
-  const [statusFilter, setStatusFilter] = useState('All Statuses');
-  const [payFilter, setPayFilter] = useState('All Payments');
-
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
-  const pageSize = 8;
+  const pageSize = 10;
 
-  // Modal state
+  const [hierarchy, setHierarchy] = useState({ countries: [], cities: [], campuses: [], courses: [], batches: [], slots: [] });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '', country: '', city: '', campus: '', course: '', batch: '', slot: '',
+    status: '', pay: '', gender: '', laptop: '', year: '', sponsorship: '', from: '', to: '',
+  });
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
-  const [selectedStudent, setSelectedStudent] = useState(null);
   const [form, setForm] = useState({ ...emptyStudent });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [deleteStudentId, setDeleteStudentId] = useState(null);
+
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [details, setDetails] = useState(null);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [payments, setPayments] = useState([]);
+  const [paymentsStudent, setPaymentsStudent] = useState(null);
+  const [actionLoading, setActionLoading] = useState('');
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await listStudents();
-      setRows(data || []);
+      const params = { page, limit: pageSize };
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v) params[k] = v;
+      });
+      const result = await listStudentsPaged(params);
+      setRows(result.data || []);
+      setTotal(result.total || 0);
+      setPages(result.pages || 1);
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Failed to load students');
+      setError(err?.response?.data?.message || 'Failed to load students');
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, filters]);
 
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
 
-  const courses = useMemo(() => ['All Courses', ...Array.from(new Set(rows.map((r) => r.course)))], [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((s) => {
-      if (cityFilter !== 'All Cities' && s.city !== cityFilter) return false;
-      if (courseFilter !== 'All Courses' && s.course !== courseFilter) return false;
-      if (statusFilter !== 'All Statuses' && s.status !== statusFilter) return false;
-      if (payFilter !== 'All Payments' && s.pay !== payFilter) return false;
-      if (!q) return true;
-      return (
-        s.name.toLowerCase().includes(q) ||
-        (s.father || '').toLowerCase().includes(q) ||
-        s.roll.toLowerCase().includes(q) ||
-        (s.cnic || '').toLowerCase().includes(q) ||
-        (s.phone || '').toLowerCase().includes(q)
-      );
-    });
-  }, [rows, search, cityFilter, courseFilter, statusFilter, payFilter]);
-
   useEffect(() => {
-    setPage(1);
-  }, [search, cityFilter, courseFilter, statusFilter, payFilter]);
+    getHierarchy()
+      .then(setHierarchy)
+      .catch(() => setHierarchy({ countries: [], cities: [], campuses: [], courses: [], batches: [], slots: [] }));
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const paginated = useMemo(
-    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [filtered, safePage],
-  );
+  const cities = useMemo(() => {
+    if (!filters.country && !form.country) return hierarchy.cities;
+    const countryName = filters.country || form.country;
+    const country = hierarchy.countries.find((c) => c.name === countryName);
+    if (!country) return hierarchy.cities;
+    return hierarchy.cities.filter((c) => String(c.country?._id || c.country) === String(country._id));
+  }, [hierarchy, filters.country, form.country]);
 
-  const clearAll = () => {
-    setSearch('');
-    setCityFilter('All Cities');
-    setCourseFilter('All Courses');
-    setStatusFilter('All Statuses');
-    setPayFilter('All Payments');
-  };
+  const campuses = useMemo(() => {
+    const cityName = filters.city || form.city;
+    if (!cityName) return hierarchy.campuses;
+    const city = hierarchy.cities.find((c) => c.name === cityName);
+    if (!city) return hierarchy.campuses.filter((c) => c.name.toLowerCase().includes(cityName.toLowerCase()));
+    return hierarchy.campuses.filter((c) => String(c.city?._id || c.city) === String(city._id));
+  }, [hierarchy, filters.city, form.city]);
 
-  const openAddModal = () => {
+  const batches = useMemo(() => {
+    const courseName = filters.course || form.course;
+    if (!courseName) return hierarchy.batches;
+    const course = hierarchy.courses.find((c) => c.name === courseName);
+    if (!course) return hierarchy.batches;
+    return hierarchy.batches.filter((b) => String(b.course?._id || b.course) === String(course._id));
+  }, [hierarchy, filters.course, form.course]);
+
+  const slots = useMemo(() => {
+    let list = hierarchy.slots || [];
+    const campus = filters.campus || form.campus;
+    const course = filters.course || form.course;
+    if (campus) list = list.filter((s) => String(s.campus).toLowerCase().includes(campus.toLowerCase()));
+    if (course) list = list.filter((s) => String(s.course).toLowerCase().includes(course.toLowerCase()));
+    return list;
+  }, [hierarchy, filters.campus, filters.course, form.campus, form.course]);
+
+  const openAdd = () => {
     setModalMode('add');
-    setSelectedStudent(null);
-    setForm({ ...emptyStudent, roll: `STU-${Date.now().toString().slice(-6)}` });
-    setFormError('');
-    setSuccessMsg('');
-    setModalOpen(true);
-  };
-
-  const openEditModal = (student) => {
-    setModalMode('edit');
-    setSelectedStudent(student);
     setForm({
-      roll: student.roll || '',
-      name: student.name || '',
-      father: student.father || '',
-      cnic: student.cnic || '',
-      dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
-      phone: student.phone || '',
-      email: student.email || '',
-      city: student.city || 'Sukkur',
-      course: student.course || COURSES_LIST[0],
-      meta: student.meta || '',
-      status: student.status || 'Enrolled',
-      pay: student.pay || 'Not Generated',
+      ...emptyStudent,
+      course: hierarchy.courses[0]?.name || '',
+      country: hierarchy.countries[0]?.name || 'Pakistan',
     });
     setFormError('');
-    setSuccessMsg('');
     setModalOpen(true);
   };
 
-  const handleSaveStudent = async () => {
-    if (!form.name.trim() || !form.roll.trim() || !form.dateOfBirth) {
-      setFormError('Name, Student ID and Date of Birth are required');
-      return;
-    }
-    if (!form.email.trim()) {
-      setFormError('Email is required for student login');
-      return;
-    }
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!emailRegex.test(form.email.trim())) {
-      setFormError('Please enter a valid email address');
-      return;
-    }
-
-    const payload = {
-      roll: form.roll.trim(),
-      name: form.name.trim(),
-      father: form.father.trim(),
-      cnic: form.cnic.trim(),
-      dateOfBirth: form.dateOfBirth,
-      phone: form.phone.trim(),
-      email: form.email.trim().toLowerCase(),
-      city: form.city,
-      course: form.course,
-      meta: form.meta.trim(),
-      status: form.status,
-      pay: form.pay,
-    };
-
-    setSaving(true);
+  const openEdit = (student) => {
+    setModalMode('edit');
+    setForm({
+      ...emptyStudent,
+      ...student,
+      id: student._id,
+      dateOfBirth: toDateInput(student.dateOfBirth),
+    });
     setFormError('');
+    setModalOpen(true);
+  };
 
+  const saveStudent = async () => {
+    setFormError('');
+    if (!form.name.trim() || !form.roll.trim() || !form.dateOfBirth) {
+      setFormError('Name, roll and date of birth are required.');
+      return;
+    }
+    setSaving(true);
     try {
-      if (modalMode === 'edit' && selectedStudent) {
-        const updated = await updateStudent(selectedStudent._id, payload);
-        setRows((prev) => prev.map((row) => (row._id === updated._id ? updated : row)));
-        setSuccessMsg(`✅ Student "${updated.name}" updated successfully.`);
+      const payload = { ...form };
+      delete payload.id;
+      if (modalMode === 'add') {
+        const result = await createStudent(payload);
+        setSuccessMsg(result.voucher
+          ? `Student registered. Registration voucher: ${result.voucher.voucher}`
+          : 'Student registered successfully.');
       } else {
-        const created = await createStudent(payload);
-        setRows((prev) => [created, ...prev]);
-        setSuccessMsg(`✅ Student "${created.name}" (${created.roll}) added successfully.`);
+        await updateStudent(form.id, payload);
+        setSuccessMsg('Student updated.');
       }
-      await fetchStudents();
       setModalOpen(false);
-      setSelectedStudent(null);
-      setForm({ ...emptyStudent });
+      await fetchStudents();
     } catch (err) {
-      setFormError(err?.response?.data?.message || err.message || 'Failed to save student');
+      setFormError(err?.response?.data?.message || 'Unable to save student');
     } finally {
       setSaving(false);
+      setTimeout(() => setSuccessMsg(''), 4000);
     }
   };
 
-  const confirmDeleteStudent = async (studentId) => {
-    if (!studentId) return;
-    const confirmed = window.confirm('Are you sure you want to delete this student? This will remove the record from the database.');
-    if (!confirmed) {
-      return;
-    }
-
-    setSaving(true);
-    setFormError('');
+  const openDetails = async (student) => {
+    setError('');
+    setActionLoading(`view-${student._id}`);
     try {
-      await deleteStudent(studentId);
-      setRows((prev) => prev.filter((row) => row._id !== studentId));
-      setSuccessMsg('✅ Student deleted successfully.');
+      const data = await getStudentDetails(student._id);
+      setDetails(data);
+      setDetailsOpen(true);
     } catch (err) {
-      setFormError(err?.response?.data?.message || err.message || 'Failed to delete student');
+      setError(err?.response?.data?.message || 'Unable to open student details');
     } finally {
-      setSaving(false);
-      setDeleteStudentId(null);
+      setActionLoading('');
+    }
+  };
+
+  const openPayments = async (student) => {
+    setError('');
+    setActionLoading(`pay-${student._id}`);
+    try {
+      const data = await getStudentVouchers(student._id);
+      setPayments(data || []);
+      setPaymentsStudent(student);
+      setPaymentsOpen(true);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to load payment vouchers');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const handleDelete = async (student) => {
+    if (!window.confirm(`Delete student "${student.name}" (${student.roll})?`)) return;
+    setError('');
+    setActionLoading(`del-${student._id}`);
+    try {
+      await deleteStudent(student._id);
+      setSuccessMsg(`Deleted ${student.name}`);
+      await fetchStudents();
+      setTimeout(() => setSuccessMsg(''), 2500);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to delete student');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const handleAudit = async (student) => {
+    setError('');
+    setActionLoading(`audit-${student._id}`);
+    try {
+      const blob = await downloadStudentAudit(student._id);
+      if (blob?.type && String(blob.type).includes('application/json')) {
+        const text = await blob.text();
+        const parsed = JSON.parse(text);
+        throw new Error(parsed.message || 'Audit download failed');
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-${student.roll}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setSuccessMsg(`Audit downloaded for ${student.roll}`);
+      setTimeout(() => setSuccessMsg(''), 2500);
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || 'Audit download failed');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const generateVoucher = async () => {
+    if (!paymentsStudent) return;
+    try {
+      await generateStudentVoucher(paymentsStudent._id, {});
+      const data = await getStudentVouchers(paymentsStudent._id);
+      setPayments(data || []);
+      setSuccessMsg('Monthly voucher generated (Pending).');
+      await fetchStudents();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to generate voucher');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await downloadStudentsExport(filters);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'students-export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Export failed (need export permission)');
     }
   };
 
   return (
-    <>
-      <div className="acard" style={{ padding: 0 }}>
-        {/* Header */}
-        <div className="acard-head" style={{ padding: '18px 18px 14px', marginBottom: 0 }}>
-          <div>
-            <span className="acard-title" style={{ fontSize: 16 }}>Students</span>
-            <div style={{ fontSize: 12.5, color: '#7286a3', marginTop: 3, fontWeight: 600 }}>
-              {cityFilter === 'All Cities'
-                ? 'All campuses — every registered student'
-                : `${cityFilter} Campus — filtered students`}
-            </div>
-          </div>
-          <div className="acard-tools">
-            <button className="btn-primary" onClick={openAddModal}>
-              <Plus size={15} /> Add Student
-            </button>
-            <button className="btn-ghost">
-              <Download size={15} /> Export CSV
-            </button>
-          </div>
+    <div className="ap-page">
+      <div className="ap-head">
+        <div>
+          <h2>Students</h2>
+          <p>Register, filter, export and manage student records with vouchers.</p>
         </div>
-
-        {/* Success message */}
-        {successMsg && (
-          <div style={{ margin: '0 18px 14px', padding: '12px 16px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 12, color: '#166534', fontWeight: 700, fontSize: 13 }}>
-            {successMsg}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div style={{ padding: '0 18px 14px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <label className="admin-search" style={{ minWidth: 240, flex: '1 1 240px' }}>
-            <Search size={16} color="#5F7A9E" />
-            <input
-              type="search"
-              placeholder="Search name, roll no, CNIC, phone…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-
-          <select className="afilter-select" style={{ width: 'auto', minWidth: 150 }} value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
-            <option value="All Cities">All Cities</option>
-            {CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <select className="afilter-select" style={{ width: 'auto', minWidth: 150 }} value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
-            {courses.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-
-          <select className="afilter-select" style={{ width: 'auto', minWidth: 140 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="All Statuses">All Statuses</option>
-            <option value="Enrolled">Enrolled</option>
-            <option value="Completed">Completed</option>
-            <option value="Dropped">Dropped</option>
-          </select>
-
-          <select className="afilter-select" style={{ width: 'auto', minWidth: 150 }} value={payFilter} onChange={(e) => setPayFilter(e.target.value)}>
-            <option value="All Payments">All Payments</option>
-            <option value="Paid">Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Not Generated">Not Generated</option>
-          </select>
-
-          <button className="btn-ghost" style={{ padding: '8px 12px' }} onClick={clearAll}>Clear</button>
-        </div>
-
-        {/* Table */}
-        <div className="admin-scroll-x">
-          <div className="atable" style={{ minWidth: 1040 }}>
-            <div className="atable-head" style={{ gridTemplateColumns: GRID }}>
-              <span>Roll No</span>
-              <span>Name</span>
-              <span>CNIC</span>
-              <span>Phone</span>
-              <span>Course / Batch</span>
-              <span>City / Campus</span>
-              <span>Status</span>
-              <span>Payment</span>
-              <span>Action</span>
-            </div>
-
-            {loading ? (
-              <div style={{ padding: 30, textAlign: 'center', color: '#5F7A9E', fontWeight: 700 }}>Loading students…</div>
-            ) : error ? (
-              <div style={{ padding: 34, textAlign: 'center' }}>
-                <div style={{ color: '#dc2626', fontWeight: 800, marginBottom: 8 }}>Error Loading Students</div>
-                <div style={{ color: '#5F7A9E', fontSize: 13 }}>{error}</div>
-                <button className="btn-ghost" style={{ marginTop: 12, padding: '8px 16px' }} onClick={fetchStudents}>Retry</button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div style={{ padding: 34, textAlign: 'center', color: '#5F7A9E', fontWeight: 800 }}>No Students Found</div>
-            ) : (
-              paginated.map((s, i) => (
-                <div className="atable-row" key={s._id || s.roll} style={{ gridTemplateColumns: GRID }}>
-                  <span className="atable-cell-strong">{s.roll}</span>
-                  <div className="atable-name">
-                    <div className="atable-av" style={{ background: AV_COLORS[i % AV_COLORS.length] }}>
-                      {initials(s.name)}
-                    </div>
-                    <div>
-                      <div className="atable-cell-strong">{s.name}</div>
-                      <div className="atable-cell-sub">{s.father || ''}</div>
-                    </div>
-                  </div>
-                  <span className="atable-cell">{s.cnic || ''}</span>
-                  <span className="atable-cell">{s.phone || ''}</span>
-                  <div>
-                    <div className="atable-cell-strong" style={{ fontSize: 12.5 }}>{s.course || ''}</div>
-                    <div className="atable-cell-sub">{s.meta || ''}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <MapPin size={14} color="#0891b2" />
-                    <div>
-                      <div className="atable-cell-strong" style={{ fontSize: 12.5 }}>{s.city || ''}</div>
-                      <div className="atable-cell-sub">{s.city ? `${s.city} Campus` : ''}</div>
-                    </div>
-                  </div>
-                  <span className={`badge ${statusBadge[s.status] || 'badge-grey'}`}>{s.status}</span>
-                  <span className={`badge ${payBadge[s.pay] || 'badge-grey'}`}>{s.pay}</span>
-                  <div className="atable-actions">
-                    <button title="View"><Eye size={16} /></button>
-                    <button title="Edit" onClick={() => openEditModal(s)}><Pencil size={15} /></button>
-                    <button title="Delete" onClick={() => confirmDeleteStudent(s._id)} style={{ color: '#ff4757' }}><X size={15} /></button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderTop: '1px solid #f0f4fa' }}>
-          <div style={{ fontSize: 12.5, color: '#5F7A9E', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Users size={15} color="#2563eb" />
-              Showing <b>{filtered.length === 0 ? 0 : (safePage - 1) * pageSize + 1}</b>–
-              <b>{Math.min(filtered.length, safePage * pageSize)}</b> of <b>{filtered.length}</b>
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="btn-ghost" style={{ padding: '8px 12px' }} disabled={safePage === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</button>
-            {Array.from({ length: totalPages }).map((_, idx) => {
-              const p = idx + 1;
-              return (
-                <button
-                  key={p}
-                  className="btn-ghost"
-                  style={{
-                    padding: '8px 12px',
-                    background: p === safePage ? '#0A3D91' : '#fff',
-                    color: p === safePage ? '#fff' : '#0A3D91',
-                    borderColor: p === safePage ? '#0A3D91' : '#cdd8ea',
-                  }}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              );
-            })}
-            <button className="btn-ghost" style={{ padding: '8px 12px' }} disabled={safePage === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
-          </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn-ghost" onClick={() => setFiltersOpen(true)}><Filter size={15} /> Filters</button>
+          <button className="btn-ghost" onClick={handleExport}><Download size={15} /> Export CSV</button>
+          <button className="btn-primary" onClick={openAdd}><Plus size={15} /> Add Student</button>
         </div>
       </div>
 
-      {/* Add Student Modal */}
+      {successMsg && <div className="ap-hint ok" style={{ marginBottom: 12 }}>{successMsg}</div>}
+      {error && <div className="ap-hint err" style={{ marginBottom: 12 }}>{error}</div>}
+
+      <div className="acard" style={{ padding: 14, marginBottom: 14 }}>
+        <label className="admin-search" style={{ width: '100%' }}>
+          <Search size={16} color="#5F7A9E" />
+          <input
+            type="search"
+            placeholder="Search name, roll, CNIC, phone…"
+            value={filters.search}
+            onChange={(e) => { setPage(1); setFilters((f) => ({ ...f, search: e.target.value })); }}
+          />
+        </label>
+      </div>
+
+      <div className="acard students-table-wrap" style={{ padding: 0 }}>
+        <div className="atable-head" style={{ gridTemplateColumns: GRID, padding: '12px 16px', minWidth: 980 }}>
+          <span>Roll</span><span>Name</span><span>CNIC</span><span>Phone</span>
+          <span>Course</span><span>Campus</span><span>Status</span><span>Payment</span><span>Actions</span>
+        </div>
+        {loading ? (
+          <div style={{ padding: 24, color: '#64748b' }}>Loading students…</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: 24, color: '#64748b' }}>No students found.</div>
+        ) : rows.map((s, idx) => (
+          <div key={s._id} className="atable-row" style={{ gridTemplateColumns: GRID, padding: '12px 16px', alignItems: 'center', minWidth: 980 }}>
+            <span className="atable-cell">{s.roll}</span>
+            <span className="atable-cell" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                width: 28, height: 28, borderRadius: 8, background: AV_COLORS[idx % AV_COLORS.length],
+                color: '#fff', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700,
+              }}>{initials(s.name)}</span>
+              {s.name}
+            </span>
+            <span className="atable-cell">{s.cnic || '—'}</span>
+            <span className="atable-cell">{s.phone || '—'}</span>
+            <span className="atable-cell">{s.course || '—'}</span>
+            <span className="atable-cell">{s.campus || s.city || '—'}</span>
+            <span className="atable-cell"><span className={`badge ${statusBadge[s.status] || 'badge-grey'}`}>{s.status}</span></span>
+            <span className="atable-cell"><span className={`badge ${payBadge[s.pay] || 'badge-grey'}`}>{s.pay}</span></span>
+            <span className="students-actions">
+              <button type="button" title="View details" disabled={!!actionLoading} onClick={() => openDetails(s)}>
+                <Eye size={15} />
+              </button>
+              <button type="button" title="Edit student" disabled={!!actionLoading} onClick={() => openEdit(s)}>
+                <Pencil size={15} />
+              </button>
+              <button type="button" title="Payments / vouchers" disabled={!!actionLoading} onClick={() => openPayments(s)}>
+                <CreditCard size={15} />
+              </button>
+              <button type="button" title="Download audit" disabled={!!actionLoading} onClick={() => handleAudit(s)}>
+                <FileText size={15} />
+              </button>
+              <button type="button" title="Delete student" disabled={!!actionLoading} onClick={() => handleDelete(s)}>
+                <Trash2 size={15} />
+              </button>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, alignItems: 'center' }}>
+        <span style={{ color: '#64748b', fontSize: 13 }}>{total} total · Page {page}/{pages}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</button>
+          <button className="btn-ghost" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>Next</button>
+        </div>
+      </div>
+
+      {filtersOpen && (
+        <div className="tmg-modal-backdrop" onClick={() => setFiltersOpen(false)}>
+          <div className="tmg-modal" style={{ maxWidth: 720 }} onClick={(e) => e.stopPropagation()}>
+            <div className="tmg-modal-head">
+              <div><div className="tmg-modal-title">Advanced Filters</div></div>
+              <button className="tmg-modal-close" onClick={() => setFiltersOpen(false)}>×</button>
+            </div>
+            <div className="tmg-modal-body">
+              <div className="tmg-form-grid">
+                {[
+                  ['country', 'Country', hierarchy.countries.map((c) => c.name)],
+                  ['city', 'City', cities.map((c) => c.name)],
+                  ['campus', 'Campus', campuses.map((c) => c.name)],
+                  ['course', 'Course', hierarchy.courses.map((c) => c.name)],
+                  ['batch', 'Batch', batches.map((b) => b.name)],
+                  ['slot', 'Slot', slots.map((s) => s.slotId)],
+                  ['status', 'Status', Object.keys(statusBadge)],
+                  ['pay', 'Payment', Object.keys(payBadge)],
+                  ['gender', 'Gender', ['Male', 'Female', 'Other']],
+                  ['laptop', 'Laptop', ['Yes', 'No']],
+                ].map(([key, label, options]) => (
+                  <div className="tmg-field" key={key}>
+                    <label>{label}</label>
+                    <select value={filters[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}>
+                      <option value="">All</option>
+                      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                ))}
+                <div className="tmg-field"><label>Year</label><input value={filters.year} onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value }))} /></div>
+                <div className="tmg-field"><label>Sponsorship</label><input value={filters.sponsorship} onChange={(e) => setFilters((f) => ({ ...f, sponsorship: e.target.value }))} /></div>
+                <div className="tmg-field"><label>From</label><input type="date" value={filters.from} onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))} /></div>
+                <div className="tmg-field"><label>To</label><input type="date" value={filters.to} onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))} /></div>
+              </div>
+            </div>
+            <div className="tmg-modal-actions">
+              <button className="tmg-btn-ghost" onClick={() => { setFilters({ search: filters.search, country: '', city: '', campus: '', course: '', batch: '', slot: '', status: '', pay: '', gender: '', laptop: '', year: '', sponsorship: '', from: '', to: '' }); setPage(1); }}>Clear</button>
+              <button className="tmg-btn-primary" onClick={() => { setPage(1); setFiltersOpen(false); fetchStudents(); }}>Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {modalOpen && (
-        <div className="tmg-modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="tmg-modal student-add-modal" style={{ width: 'min(680px, 100%)' }} onClick={(e) => e.stopPropagation()}>
+        <div className="tmg-modal-backdrop">
+          <div className="tmg-modal" style={{ maxWidth: 860 }}>
             <div className="tmg-modal-head">
               <div>
-                <span className="tmg-modal-title">
-                  {modalMode === 'edit' ? 'Edit Student' : 'Add New Student'}
-                </span>
-                <div className="tmg-modal-sub">
-                  {modalMode === 'edit'
-                    ? 'Update the student record and save changes to the database.'
-                    : 'Student will be saved to database and visible everywhere (Admin + Sub-Admin)'}
-                </div>
+                <div className="tmg-modal-title">{modalMode === 'add' ? 'Register Student' : 'Edit Student'}</div>
+                <div className="tmg-modal-sub">Country → City → Campus → Course → Batch → Slot</div>
               </div>
-              <button className="tmg-modal-close" onClick={() => setModalOpen(false)}><X size={20} /></button>
+              <button className="tmg-modal-close" onClick={() => setModalOpen(false)}>×</button>
             </div>
-            <div className="tmg-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto' }}>
-              {formError && (
-                <div className="tmg-server-error" style={{ marginBottom: 12 }}>{formError}</div>
-              )}
+            <div className="tmg-modal-body">
+              {formError && <div className="tmg-server-error">{formError}</div>}
               <div className="tmg-form-grid">
+                {[
+                  ['country', 'Country', 'select', hierarchy.countries.map((c) => c.name)],
+                  ['city', 'City', 'select', cities.map((c) => c.name)],
+                  ['campus', 'Campus', 'select', campuses.map((c) => c.name)],
+                  ['course', 'Course', 'select', hierarchy.courses.map((c) => c.name)],
+                  ['batch', 'Batch', 'select', [...new Set(batches.map((b) => b.name))]],
+                  ['slot', 'Slot', 'select', slots.map((s) => s.slotId)],
+                  ['roll', 'Roll Number *', 'text'],
+                  ['name', 'Full Name *', 'text'],
+                  ['father', 'Father Name', 'text'],
+                  ['cnic', 'CNIC', 'text'],
+                  ['fatherCnic', "Father's CNIC", 'text'],
+                  ['dateOfBirth', 'Date of Birth *', 'date'],
+                  ['gender', 'Gender', 'select', ['Male', 'Female', 'Other']],
+                  ['phone', 'Phone', 'text'],
+                  ['fatherPhone', "Father's Phone", 'text'],
+                  ['email', 'Email', 'email'],
+                  ['address', 'Address', 'text'],
+                  ['lastQualification', 'Last Qualification', 'text'],
+                  ['computerLevel', 'Computer Level', 'text'],
+                  ['laptop', 'Laptop', 'select', ['Yes', 'No']],
+                  ['sponsorship', 'Sponsorship', 'text'],
+                  ['year', 'Year', 'number'],
+                  ['status', 'Status', 'select', Object.keys(statusBadge)],
+                  ['appPassword', 'App Password (optional)', 'text'],
+                ].map(([key, label, type, options]) => (
+                  <div className={`tmg-field${key === 'address' ? ' tmg-field-span' : ''}`} key={key}>
+                    <label>{label}</label>
+                    {type === 'select' ? (
+                      <select value={form[key] || ''} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}>
+                        <option value="">Select</option>
+                        {(options || []).map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        type={type}
+                        value={form[key] || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        placeholder={key === 'cnic' ? '45601-1234567-1' : ''}
+                      />
+                    )}
+                  </div>
+                ))}
                 <div className="tmg-field tmg-field-span">
-                  <label>Full Name *</label>
-                  <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Muhammad Ali" />
-                </div>
-                <div className="tmg-field">
-                  <label>Student ID *</label>
-                  <input value={form.roll} onChange={(e) => setForm({ ...form, roll: e.target.value })} placeholder="e.g. AI-24-001" />
-                </div>
-                <div className="tmg-field">
-                  <label>Father Name</label>
-                  <input value={form.father} onChange={(e) => setForm({ ...form, father: e.target.value })} placeholder="e.g. Ali Ahmed" />
-                </div>
-                <div className="tmg-field">
-                  <label>CNIC</label>
-                  <input value={form.cnic} onChange={(e) => setForm({ ...form, cnic: e.target.value })} placeholder="45601-1234567-1" />
-                </div>
-                <div className="tmg-field">
-                  <label>Date of Birth *</label>
-                  <input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} />
-                </div>
-                <div className="tmg-field">
-                  <label>Phone</label>
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="0300-1234567" />
-                </div>
-                <div className="tmg-field">
-                  <label>Email (for login) *</label>
-                  <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" />
-                </div>
-                <div className="tmg-field">
-                  <label>City</label>
-                  <select value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}>
-                    {CITIES.map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="tmg-field">
-                  <label>Course</label>
-                  <select value={form.course} onChange={(e) => setForm({ ...form, course: e.target.value })}>
-                    {COURSES_LIST.map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="tmg-field">
-                  <label>Meta (Batch)</label>
-                  <input value={form.meta} onChange={(e) => setForm({ ...form, meta: e.target.value })} placeholder="e.g. Batch 01 / Morning" />
-                </div>
-                <div className="tmg-field">
-                  <label>Status</label>
-                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                    <option>Enrolled</option>
-                    <option>Completed</option>
-                    <option>Dropped</option>
-                  </select>
-                </div>
-                <div className="tmg-field">
-                  <label>Payment</label>
-                  <select value={form.pay} onChange={(e) => setForm({ ...form, pay: e.target.value })}>
-                    <option>Not Generated</option>
-                    <option>Pending</option>
-                    <option>Paid</option>
-                  </select>
+                  <label>Photo Upload</label>
+                  <input type="file" accept="image/*" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setForm((f) => ({ ...f, photoUrl: reader.result }));
+                    reader.readAsDataURL(file);
+                  }} />
+                  {form.photoUrl && <img src={form.photoUrl} alt="preview" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 12, marginTop: 8 }} />}
                 </div>
               </div>
             </div>
             <div className="tmg-modal-actions">
               <button className="tmg-btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-              <button className="tmg-btn-primary" onClick={handleSaveStudent} disabled={saving}>
-                {saving ? 'Saving...' : modalMode === 'edit' ? 'Update Student' : <><Plus size={15} /> Add Student</>}
-              </button>
+              <button className="tmg-btn-primary" disabled={saving} onClick={saveStudent}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
         </div>
       )}
-    </>
+
+      {detailsOpen && details && (
+        <div className="tmg-modal-backdrop">
+          <div className="tmg-modal" style={{ maxWidth: 820 }}>
+            <div className="tmg-modal-head">
+              <div><div className="tmg-modal-title">{details.student.name}</div><div className="tmg-modal-sub">Student details & history</div></div>
+              <button className="tmg-modal-close" onClick={() => setDetailsOpen(false)}>×</button>
+            </div>
+            <div className="tmg-modal-body">
+              {[
+                ['Personal', details.personal],
+                ['Education', details.education],
+                ['Contact', details.contact],
+              ].map(([title, obj]) => (
+                <div key={title} style={{ marginBottom: 16 }}>
+                  <h4 style={{ margin: '0 0 8px' }}>{title}</h4>
+                  <div className="profile-details">
+                    {Object.entries(obj || {}).map(([k, v]) => (
+                      <div key={k} className="profile-detail" style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eef2f7' }}>
+                        <span style={{ color: '#64748b' }}>{k}</span>
+                        <span style={{ fontWeight: 600 }}>{v ? String(v).slice(0, 80) : '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <h4>Courses History</h4>
+              {(details.courses || []).length === 0 ? <div style={{ color: '#64748b' }}>No enrollments yet.</div> : details.courses.map((c) => (
+                <div key={c._id} style={{ padding: '8px 0', borderBottom: '1px solid #eef2f7' }}>
+                  {c.course || '—'} · {c.roll} · {c.status} · {c.campus || '—'} · {c.schedule || '—'}
+                </div>
+              ))}
+              <h4 style={{ marginTop: 16 }}>Change History</h4>
+              {(details.history || []).length === 0 ? <div style={{ color: '#64748b' }}>No changes recorded.</div> : details.history.slice(0, 12).map((h, i) => (
+                <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #eef2f7', fontSize: 13 }}>
+                  <b>{h.field}</b>: {h.from || '—'} → {h.to || '—'} · {h.changedByName || 'system'} · {h.changedAt ? new Date(h.changedAt).toLocaleString() : ''}
+                </div>
+              ))}
+            </div>
+            <div className="tmg-modal-actions">
+              <button className="tmg-btn-primary" onClick={() => setDetailsOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentsOpen && (
+        <div className="tmg-modal-backdrop">
+          <div className="tmg-modal" style={{ maxWidth: 720 }}>
+            <div className="tmg-modal-head">
+              <div>
+                <div className="tmg-modal-title">Payments · {paymentsStudent?.name}</div>
+                <div className="tmg-modal-sub">Registration / Monthly vouchers</div>
+              </div>
+              <button className="tmg-modal-close" onClick={() => setPaymentsOpen(false)}>×</button>
+            </div>
+            <div className="tmg-modal-body">
+              <button className="btn-primary" style={{ marginBottom: 12 }} onClick={generateVoucher}>Generate Monthly Voucher</button>
+              {(payments || []).length === 0 ? <div style={{ color: '#64748b' }}>No vouchers yet.</div> : payments.map((p) => (
+                <div key={p._id} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 0.8fr 0.8fr', gap: 8, padding: '10px 0', borderBottom: '1px solid #eef2f7', fontSize: 13 }}>
+                  <span>{p.voucher}</span>
+                  <span>{p.type}</span>
+                  <span>{p.month || '—'}</span>
+                  <span>Rs {p.amount}</span>
+                  <span className={`badge ${p.status === 'PAID' ? 'badge-green' : 'badge-amber'}`}>{p.status === 'PAID' ? 'Paid' : 'Pending'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

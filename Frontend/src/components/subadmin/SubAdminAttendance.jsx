@@ -97,7 +97,7 @@ function SubAdminAttendance({ city, perms, students }) {
   };
 
   return (
-    <div className="ap-page">
+    <div className="ap-page subadmin-attendance-page">
       <div className="ap-head">
         <div>
           <h2>Attendance — {city} Campus</h2>

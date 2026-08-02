@@ -4,32 +4,16 @@ const Trainer = require('../models/Trainer');
 const Slot = require('../models/Slot');
 const Permission = require('../models/Permission');
 const { protect, authorize } = require('../middleware/auth');
+const {
+  ensureDefaultPermissions,
+  DEFAULT_PERMISSIONS,
+  getPermissionsForRole,
+} = require('../middleware/permissions');
 
 const router = express.Router();
 
 const CITY_LIST = ['Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan'];
 const CITY_REGEX = (city) => new RegExp(`^${city}( Campus)?$`, 'i');
-const ALL_PERMS = ['read', 'write', 'update', 'export'];
-const MODULES = ['Dashboard', 'Students', 'Attendance', 'Slots', 'Trainers', 'Updation', 'Reports', 'Settings', 'Audit Logs'];
-
-const DEFAULT_PERMISSIONS = {
-  superadmin: Object.fromEntries(MODULES.map((module) => [module, [...ALL_PERMS]])),
-  subadmin: Object.fromEntries(MODULES.map((module) => [module, module === 'Settings' || module === 'Audit Logs' ? ['read'] : ['read', 'write', 'update']])),
-  trainer: Object.fromEntries(MODULES.map((module) => [module, ['Dashboard', 'Attendance', 'Students'].includes(module) ? ['read', 'write'] : ['read']])),
-  student: Object.fromEntries(MODULES.map((module) => [module, module === 'Dashboard' ? ['read'] : []])),
-};
-
-async function ensureDefaultPermissions() {
-  await Promise.all(
-    Object.entries(DEFAULT_PERMISSIONS).map(async ([role, permissions]) => {
-      await Permission.findOneAndUpdate(
-        { role },
-        { $setOnInsert: { permissions } },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
-    })
-  );
-}
 
 router.get('/permissions', protect, authorize('superadmin'), async (req, res, next) => {
   try {
@@ -40,6 +24,15 @@ router.get('/permissions', protect, authorize('superadmin'), async (req, res, ne
       return acc;
     }, {});
     res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/my-permissions', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
+  try {
+    const permissions = await getPermissionsForRole(req.user.role);
+    res.json({ success: true, data: { role: req.user.role, permissions } });
   } catch (error) {
     next(error);
   }

@@ -10,6 +10,11 @@ export async function getRolePermissions() {
   return data.data;
 }
 
+export async function getMyPermissions() {
+  const { data } = await api.get('/admin/my-permissions');
+  return data.data;
+}
+
 export async function updateRolePermissions(permissions) {
   const { data } = await api.post('/admin/permissions', { permissions });
   return data.data;

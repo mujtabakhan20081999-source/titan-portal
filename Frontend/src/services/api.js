@@ -9,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Attach JWT token to every request if it exists
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -21,19 +20,22 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Global response error handler
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired/invalid — clear auth and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const path = window.location.pathname || '';
+      const hasToken = Boolean(localStorage.getItem('token'));
+      const url = String(error.config?.url || '');
+      const isAuthCall = url.includes('/auth/login') || url.includes('/auth/me');
+      if (!hasToken || isAuthCall) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = path.startsWith('/admin') ? '/admin' : '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
 export default api;
-

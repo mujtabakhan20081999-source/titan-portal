@@ -299,6 +299,11 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
   const [databaseSlots, setDatabaseSlots] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [paymentRecords, setPaymentRecords] = useState([]);
+  const [permissions, setPermissions] = useState(admin?.permissions || {});
+
+  useEffect(() => {
+    setPermissions(admin?.permissions || {});
+  }, [admin]);
 
   useEffect(() => {
     Promise.all([listStudents(), listTrainers(), listSlots(), listAttendance(), listPayments()])
@@ -641,6 +646,8 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         active={active}
+        permissions={permissions}
+        role={admin?.role || 'superadmin'}
         onSelect={(l) => {
           setActive(l);
           setSidebarOpen(false);

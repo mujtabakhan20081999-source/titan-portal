@@ -20,7 +20,7 @@ import Calendar from './components/features/Calendar';
 import Quiz from './components/features/Quiz';
 
 function AppShell({ user, onLogout }) {
-  const userName = user.role === 'teacher' ? 'Sir Yasir Ali' : 'Mujtaba Khan';
+  const userName = user.fullName || (user.role === 'teacher' ? 'Trainer' : 'Student');
 
   return (
     <div className="app-shell" style={{ display: 'flex', minHeight: '100vh' }}>
@@ -40,7 +40,7 @@ function AppShell({ user, onLogout }) {
           <Route path="/profile" element={<Profile role={user.role} />} />
           <Route
             path="/settings"
-            element={<Settings role={user.role} userName={userName} onLogout={onLogout} />}
+            element={<Settings role={user.role} userName={userName} userEmail={user.email} onLogout={onLogout} />}
           />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

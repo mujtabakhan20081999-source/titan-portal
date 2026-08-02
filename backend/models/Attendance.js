@@ -7,13 +7,19 @@ const attendanceSchema = new mongoose.Schema(
     studentName: { type: String, trim: true },
     trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer' },
     trainerName: { type: String, trim: true },
+    slot: { type: mongoose.Schema.Types.ObjectId, ref: 'Slot' },
+    slotId: { type: String, trim: true, default: '' },
     date: { type: Date, required: true, default: Date.now },
     status: { type: String, enum: ['Present', 'Absent', 'Leave', 'Late'], default: 'Present' },
     checkIn: { type: String, default: null },
     checkOut: { type: String, default: null },
     remarks: { type: String, trim: true, default: '' },
+    markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    markedByName: { type: String, trim: true, default: '' },
   },
   { timestamps: true }
 );
+
+attendanceSchema.index({ student: 1, date: 1, slotId: 1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

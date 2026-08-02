@@ -1,110 +1,76 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookOpen, Users, ClipboardList, Calendar, Clock, User, CalendarDays, ChevronRight } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import TeacherCourseDetail from '../components/dashboard/TeacherCourseDetail';
+import { listMySlots } from '../services/slotService';
 
-const courses = [
-  {
-    id: 1,
-    name: 'Little Geniuses: Coding, Design & AI Fun Lab',
-    type: 'LAB',
-    gender: 'Male',
-    campus: 'SMIT Ghotki Campus (Ghotki)',
-    batch: 'Batch 1',
-    progress: 0,
-    enrolled: 4,
-    schedule: 'Sat 04:00 PM – 06:00 PM | Sun 04:00 PM – 06:00 PM',
-    started: '1 Jun 2026',
-    bg: '#e8f5e9',
-    border: '#a5d6a7',
-    titleColor: '#1b5e20',
-  },
-  {
-    id: 2,
-    name: 'Little Geniuses: Coding, Design & AI Fun Lab',
-    type: 'LAB',
-    gender: 'Female',
-    campus: 'SMIT Ghotki Campus (Ghotki)',
-    batch: 'Batch 1',
-    progress: 0,
-    enrolled: 8,
-    schedule: 'Sat 12:00 PM – 02:00 PM | Sun 12:00 PM – 02:00 PM',
-    started: '1 Jun 2026',
-    bg: '#e8eaf6',
-    border: '#9fa8da',
-    titleColor: '#1a237e',
-  },
-  {
-    id: 3,
-    name: 'Little Geniuses: Coding, Design & AI Fun Lab',
-    type: 'LAB',
-    gender: 'Female',
-    campus: 'SMIT Ghotki Campus (Ghotki)',
-    batch: 'Batch 1',
-    progress: 0,
-    enrolled: 0,
-    schedule: 'Sat 10:00 AM – 12:00 PM | Sun 10:00 AM – 12:00 PM',
-    started: '1 Jun 2026',
-    bg: '#f5f5f5',
-    border: '#e0e0e0',
-    titleColor: '#37474f',
-  },
-  {
-    id: 4,
-    name: 'Modern Web Application Development',
-    type: 'LAB',
-    gender: 'Female',
-    campus: 'SMIT Ghotki Campus (Ghotki)',
-    batch: 'Batch 3',
-    progress: 25,
-    enrolled: 30,
-    schedule: 'Sat 08:00 AM – 10:00 AM | Sun 08:00 AM – 10:00 AM',
-    started: '1 Jan 2026',
-    bg: '#fce4ec',
-    border: '#f48fb1',
-    titleColor: '#880e4f',
-  },
-  {
-    id: 5,
-    name: 'Modern Web Application Development',
-    type: 'LAB',
-    gender: 'Male',
-    campus: 'SMIT Ghotki Campus (Ghotki)',
-    batch: 'Batch 3',
-    progress: 25,
-    enrolled: 30,
-    schedule: 'Sat 08:00 AM – 10:00 AM | Sun 08:00 AM – 10:00 AM',
-    started: '1 Jan 2026',
-    bg: '#e0f7fa',
-    border: '#80deea',
-    titleColor: '#004d40',
-  },
-  {
-    id: 6,
-    name: 'Modern Web Application Development',
-    type: 'LAB',
-    gender: 'Male',
-    campus: 'Saylani TITAN Sukkur Campus (Sukkur)',
-    batch: 'Batch 1',
-    progress: 10,
-    enrolled: 30,
-    schedule: 'Sat 08:00 AM – 10:00 AM | Sun 08:00 AM – 10:00 AM',
-    started: '1 Jun 2026',
-    bg: '#f3e5f5',
-    border: '#ce93d8',
-    titleColor: '#4a148c',
-  },
+const CARD_THEMES = [
+  { bg: '#e8f5e9', border: '#a5d6a7', titleColor: '#1b5e20' },
+  { bg: '#e8eaf6', border: '#9fa8da', titleColor: '#1a237e' },
+  { bg: '#fce4ec', border: '#f48fb1', titleColor: '#880e4f' },
+  { bg: '#e0f7fa', border: '#80deea', titleColor: '#004d40' },
+  { bg: '#f3e5f5', border: '#ce93d8', titleColor: '#4a148c' },
+  { bg: '#fff3e0', border: '#ffcc80', titleColor: '#e65100' },
 ];
 
-const weekDays = [
-  { short: 'Sun', num: '14', active: false },
-  { short: 'Mon', num: '15', active: false },
-  { short: 'Tue', num: '16', active: false },
-  { short: 'Wed', num: '17', active: true },
-  { short: 'Thu', num: '18', active: false },
-  { short: 'Fri', num: '19', active: true },
-  { short: 'Sat', num: '20', active: true },
-];
+function formatDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function mapSlotToCourse(slot, index) {
+  const theme = CARD_THEMES[index % CARD_THEMES.length];
+  const seats = Number(slot.seats) || 0;
+  const filled = Number(slot.filled) || 0;
+  const progress = seats > 0 ? Math.min(100, Math.round((filled / seats) * 100)) : 0;
+
+  return {
+    id: slot._id || slot.slotId,
+    slotId: slot.slotId,
+    name: slot.course,
+    type: (slot.classType || 'Onsite').toUpperCase(),
+    gender: slot.gender || 'Mixed',
+    campus: slot.campus,
+    batch: slot.slotId || `Slot ${index + 1}`,
+    progress,
+    enrolled: filled,
+    seats,
+    schedule: `${slot.days || '—'} | ${slot.time || '—'}`,
+    started: formatDate(slot.start),
+    status: slot.status || 'Open',
+    days: slot.days || '',
+    time: slot.time || '',
+    ...theme,
+  };
+}
+
+function buildWeekDays(slots) {
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(today.getDate() - today.getDay());
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const assignedDays = slots
+    .flatMap((slot) => String(slot.days || '').split(/[,|/]/))
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+
+  return dayNames.map((short, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const full = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const active = assignedDays.some(
+      (day) => day.includes(short.toLowerCase()) || day.includes(full.slice(0, 3)) || day.includes(full)
+    );
+    return {
+      short,
+      num: String(date.getDate()).padStart(2, '0'),
+      active,
+    };
+  });
+}
 
 function StatBox({ icon: Icon, value, label, iconBg, iconColor }) {
   return (
@@ -178,8 +144,8 @@ function CourseCard({ course, onOpen }) {
 
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>Progress</span>
-          <span style={{ fontSize: 12, color: '#555', fontWeight: 700 }}>{course.progress}% Completed</span>
+          <span style={{ fontSize: 12, color: '#555', fontWeight: 500 }}>Enrollment</span>
+          <span style={{ fontSize: 12, color: '#555', fontWeight: 700 }}>{course.progress}% Filled</span>
         </div>
         <div style={{ background: 'rgba(0,0,0,0.10)', borderRadius: 999, height: 6, overflow: 'hidden' }}>
           <div style={{
@@ -195,7 +161,7 @@ function CourseCard({ course, onOpen }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#444' }}>
           <User size={13} color="#888" />
-          <span>Enrolled : <strong>{course.enrolled}</strong> students</span>
+          <span>Enrolled : <strong>{course.enrolled}</strong> / {course.seats} students</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#444' }}>
           <Clock size={13} color="#888" />
@@ -221,19 +187,56 @@ function CourseCard({ course, onOpen }) {
 
 function TeacherDashboard() {
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [trainer, setTrainer] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  })();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const result = await listMySlots();
+        if (!mounted) return;
+        setTrainer(result.trainer || null);
+        setCourses((result.data || []).map(mapSlotToCourse));
+      } catch (err) {
+        if (!mounted) return;
+        setError(err?.response?.data?.message || 'Unable to load your assigned slots.');
+        setCourses([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const openCourse = (course) => {
     const code = course.name.toLowerCase().includes('modern web') ? 'MWAD' : 'LGAL';
     setSelectedCourse({ ...course, code });
   };
 
+  const displayName = trainer?.fullName || storedUser.fullName || 'Trainer';
+  const weekDays = buildWeekDays(courses);
+  const totalStudents = courses.reduce((sum, course) => sum + (Number(course.enrolled) || 0), 0);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <TopBar
-        userName="Sir Yasir Ali"
+        userName={displayName}
         userRole="Trainer"
         pageTitle="Teacher Dashboard"
-        pageSubtitle="Manage your courses, track student progress, and stay on top of your teaching schedule."
+        pageSubtitle="Manage your assigned slots, track student enrollment, and stay on top of your teaching schedule."
       />
 
       {selectedCourse ? (
@@ -245,8 +248,8 @@ function TeacherDashboard() {
 
         <div className="flex-row-responsive" style={{ gap: 20, alignItems: 'stretch' }}>
           <div className="td-statbox-row" style={{ display: 'flex', flex: 3, gap: 20 }}>
-            <StatBox icon={BookOpen}      value={6}   label="Active Courses"     iconBg="#dcfce7" iconColor="#16a34a" />
-            <StatBox icon={Users}         value={102} label="Enrolled Students"  iconBg="#dbeafe" iconColor="#2563eb" />
+            <StatBox icon={BookOpen}      value={loading ? '—' : courses.length} label="Assigned Slots"     iconBg="#dcfce7" iconColor="#16a34a" />
+            <StatBox icon={Users}         value={loading ? '—' : totalStudents} label="Enrolled Students"  iconBg="#dbeafe" iconColor="#2563eb" />
             <StatBox icon={ClipboardList} value={0}   label="Total Assignments"  iconBg="#f3e8ff" iconColor="#9333ea" />
           </div>
 
@@ -281,13 +284,28 @@ function TeacherDashboard() {
 
         <div>
           <h2 style={{ fontWeight: 700, fontSize: 17, color: '#10375C', marginBottom: 16 }}>
-            Active Courses
+            Assigned Slots
           </h2>
-          <div className="grid-2">
-            {courses.map((c) => (
-              <CourseCard key={c.id} course={c} onOpen={() => openCourse(c)} />
-            ))}
-          </div>
+
+          {error && (
+            <div className="card card-padding" style={{ color: '#b91c1c', marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="card card-padding" style={{ color: '#5F7A9E' }}>Loading your assigned slots…</div>
+          ) : courses.length === 0 ? (
+            <div className="card card-padding" style={{ color: '#5F7A9E' }}>
+              No slots have been assigned to you yet. Please contact administration.
+            </div>
+          ) : (
+            <div className="grid-2">
+              {courses.map((c) => (
+                <CourseCard key={c.id} course={c} onOpen={() => openCourse(c)} />
+              ))}
+            </div>
+          )}
         </div>
 
       </div>

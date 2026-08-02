@@ -4,7 +4,7 @@ import {
   User, Eye, EyeOff, ArrowRight, AlertCircle, Loader2, ShieldCheck,
 } from 'lucide-react';
 import titanLogo from '../assets/TITAN LOGO without BG.png';
-import { login } from '../services/authService';
+import { login, adminForgotPassword } from '../services/authService';
 import './AdminLogin.css';
 
 function AdminDeskIllustration() {
@@ -104,8 +104,11 @@ function IllusSide({ isAdmin }) {
 /* ── Form panel (self-contained per role) ──────────────────────────────── */
 function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
   const [form, setForm]         = useState({ email: '', password: '', remember: false });
+  const [forgot, setForgot]     = useState({ email: '', fullName: '', password: '', confirm: '' });
+  const [mode, setMode]         = useState('login');
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState('');
+  const [success, setSuccess]   = useState('');
   const [loading, setLoading]   = useState(false);
   const [shake, setShake]       = useState(false);
 
@@ -116,6 +119,7 @@ function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     if (!form.email.trim() || !form.password.trim()) {
       setError('Please fill in all fields.');
       triggerShake();
@@ -142,15 +146,53 @@ function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
     }
   };
 
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    if (!forgot.email.trim() || !forgot.fullName.trim() || !forgot.password || !forgot.confirm) {
+      setError('Please fill in all fields.');
+      triggerShake();
+      return;
+    }
+    if (forgot.password !== forgot.confirm) {
+      setError('Passwords do not match.');
+      triggerShake();
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await adminForgotPassword({
+        email: forgot.email.trim(),
+        fullName: forgot.fullName.trim(),
+        password: forgot.password,
+      });
+      setSuccess(result.message || 'Password reset successfully.');
+      setForgot({ email: '', fullName: '', password: '', confirm: '' });
+      setMode('login');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to reset password.');
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="adm-form-side">
-      <div className="adm-form-inner" key={role}>
+      <div className="adm-form-inner" key={`${role}-${mode}`}>
 
-        <h2 className="adm-title">Login</h2>
-        <p className="adm-sub">{isAdmin ? 'Administrator access' : 'Sub-Admin access'}</p>
+        <h2 className="adm-title">{mode === 'login' ? 'Login' : 'Reset Password'}</h2>
+        <p className="adm-sub">
+          {mode === 'login'
+            ? (isAdmin ? 'Administrator access' : 'Sub-Admin access')
+            : 'Verify your registered email and full name'}
+        </p>
 
+        {mode === 'login' ? (
         <form onSubmit={handleSubmit} className={shake ? 'adm-shake' : ''}>
 
+          {success && <div className="adm-error" style={{ background: '#ecfdf5', color: '#047857', borderColor: '#a7f3d0' }}>{success}</div>}
           {error && (
             <div className="adm-error"><AlertCircle size={14} /> {error}</div>
           )}
@@ -188,7 +230,9 @@ function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
           </div>
 
           <div className="adm-forgot-row">
-            <a href="#" className="adm-forgot">Forgot Password?</a>
+            <button type="button" className="adm-forgot" onClick={() => { setError(''); setSuccess(''); setMode('forgot'); }}>
+              Forgot Password?
+            </button>
           </div>
 
           <button type="submit" className="adm-btn" disabled={loading}>
@@ -196,7 +240,6 @@ function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
                      : (<>Login <ArrowRight size={18} /></>)}
           </button>
 
-          {/* Switch to the other role (slides the view) */}
           <button type="button" className="adm-switch" onClick={() => { setError(''); onSwitch(); }}>
             <span>{isAdmin ? 'Are you a Sub-Admin?' : 'Are you an Administrator?'}</span>
             <strong>{isAdmin ? 'Sub-Admin Login' : 'Admin Login'} <ArrowRight size={14} /></strong>
@@ -211,6 +254,42 @@ function FormSide({ role, onSwitch, onLogin, onStudentLogin }) {
 
           <div className="adm-secure"><ShieldCheck size={13} /> Secured admin access</div>
         </form>
+        ) : (
+        <form onSubmit={handleForgot} className={shake ? 'adm-shake' : ''}>
+          {error && <div className="adm-error"><AlertCircle size={14} /> {error}</div>}
+          <div className="adm-field">
+            <div className="adm-input-wrap">
+              <input className="adm-input" placeholder="Registered email" value={forgot.email}
+                onChange={(e) => setForgot((f) => ({ ...f, email: e.target.value }))} />
+              <span className="adm-input-icon"><User size={17} /></span>
+            </div>
+          </div>
+          <div className="adm-field">
+            <div className="adm-input-wrap">
+              <input className="adm-input" placeholder="Full name (as registered)" value={forgot.fullName}
+                onChange={(e) => setForgot((f) => ({ ...f, fullName: e.target.value }))} />
+            </div>
+          </div>
+          <div className="adm-field">
+            <div className="adm-input-wrap">
+              <input type="password" className="adm-input" placeholder="New password" value={forgot.password}
+                onChange={(e) => setForgot((f) => ({ ...f, password: e.target.value }))} />
+            </div>
+          </div>
+          <div className="adm-field">
+            <div className="adm-input-wrap">
+              <input type="password" className="adm-input" placeholder="Confirm password" value={forgot.confirm}
+                onChange={(e) => setForgot((f) => ({ ...f, confirm: e.target.value }))} />
+            </div>
+          </div>
+          <button type="submit" className="adm-btn" disabled={loading}>
+            {loading ? 'Resetting…' : 'Reset Password'}
+          </button>
+          <button type="button" className="adm-switch" onClick={() => { setMode('login'); setError(''); }}>
+            <span>Back to Login</span>
+          </button>
+        </form>
+        )}
       </div>
     </div>
   );

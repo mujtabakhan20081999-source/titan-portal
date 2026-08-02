@@ -32,6 +32,7 @@ function TrainerDetails({ open, trainer, onClose }) {
 
               <div className="tmg-details-fields">
                 <div><b>Email:</b> {trainer.email}</div>
+                <div><b>CNIC:</b> {trainer.cnic || '—'}</div>
                 <div><b>Phone:</b> {trainer.phoneNumber}</div>
                 <div><b>Campus:</b> {trainer.campus}</div>
                 <div><b>Joining Date:</b> {trainer.joiningDate}</div>

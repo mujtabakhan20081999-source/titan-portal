@@ -11,12 +11,13 @@ function normalizeTrainerForForm(t) {
   return {
     fullName: t.fullName || '',
     email: t.email || '',
+    cnic: t.cnic || '',
     phoneNumber: t.phoneNumber || '',
     campus: t.campus || '',
     gender: t.gender || '',
     qualification: t.qualification || '',
     experience: t.experience ?? '',
-    joiningDate: t.joiningDate || '',
+    joiningDate: t.joiningDate ? String(t.joiningDate).slice(0, 10) : '',
     salary: t.salary ?? '',
     address: t.address || '',
     status: t.status || 'Active',
@@ -78,6 +79,7 @@ function Trainers() {
     setModalInitialValues({
       fullName: '',
       email: '',
+      cnic: '',
       phoneNumber: '',
       campus: campuses[0] || '',
       gender: '',
@@ -112,6 +114,7 @@ function Trainers() {
       const payload = {
         fullName: form.fullName,
         email: form.email,
+        cnic: form.cnic,
         phoneNumber: form.phoneNumber,
         campus: form.campus,
         gender: form.gender,

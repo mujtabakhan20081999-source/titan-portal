@@ -5,6 +5,7 @@ const slotSchema = new mongoose.Schema(
     slotId: { type: String, required: true, unique: true, trim: true },
     course: { type: String, required: true, trim: true },
     trainer: { type: String, trim: true, default: 'Assign later' },
+    trainerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Trainer', default: null },
     campus: { type: String, required: true, trim: true },
     days: { type: String, required: true, trim: true },
     time: { type: String, required: true, trim: true },

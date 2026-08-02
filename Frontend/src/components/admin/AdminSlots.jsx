@@ -116,6 +116,7 @@ export default function AdminSlots({ city }) {
     setTrainerModalInitialValues({
       fullName: '',
       email: '',
+      cnic: '',
       phoneNumber: '',
       campus: city ? `${city} Campus` : CAMPUSES[0],
       gender: '',
@@ -143,6 +144,7 @@ export default function AdminSlots({ city }) {
       const payload = {
         fullName: formData.fullName,
         email: formData.email,
+        cnic: formData.cnic,
         phoneNumber: formData.phoneNumber,
         campus: formData.campus,
         gender: formData.gender,
@@ -175,9 +177,13 @@ export default function AdminSlots({ city }) {
 
     try {
       const trainerName = form.trainer === ADD_TRAINER_OPTION ? '' : form.trainer;
+      const selectedTrainer = trainers.find(
+        (t) => t.fullName === trainerName || (t._id || t.id) === form.trainerId
+      );
       const payload = {
         course: form.course,
         trainer: trainerName,
+        trainerId: selectedTrainer?._id || selectedTrainer?.id || null,
         campus: form.campus,
         days: form.days,
         time: form.time,

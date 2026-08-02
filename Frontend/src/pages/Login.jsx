@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Login.css';
 import titanLogo from '../assets/TITAN LOGO without BG.png';
-import { createPassword, login } from '../services/authService';
+import { createPassword, forgotPassword, login } from '../services/authService';
 
 function ShieldLogo() {
   return (
@@ -282,6 +282,22 @@ const TeacherUserIcon = () => (
     <path d="M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" />
   </svg>
 );
+const MailIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24"
+    stroke="#9CA3AF" strokeWidth="2.2">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+      strokeLinecap="round" strokeLinejoin="round" />
+    <polyline points="22,6 12,13 2,6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IdCardIcon = () => (
+  <svg width="17" height="17" fill="none" viewBox="0 0 24 24"
+    stroke="#9CA3AF" strokeWidth="2.2">
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <circle cx="8" cy="12" r="2.2" />
+    <path d="M13 10h5M13 14h3" strokeLinecap="round" />
+  </svg>
+);
 
 function BluePanel({ isTeacher }) {
   return (
@@ -362,8 +378,14 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
   const [activeTab,    setActiveTab]    = useState('login');
   const [showPass,     setShowPass]     = useState(false);
   const [showCrPass,   setShowCrPass]   = useState(false);
-  const [createForm,   setCreateForm]   = useState({ identifier: '', dob: '', password: '' });
+  const [showFpPass,   setShowFpPass]   = useState(false);
+  const [showFpConfirm, setShowFpConfirm] = useState(false);
+  const [createForm,   setCreateForm]   = useState({ identifier: '', dateValue: '', password: '' });
+  const [forgotForm,   setForgotForm]   = useState({
+    cnic: '', email: '', dateValue: '', password: '', confirmPassword: '',
+  });
   const [error,        setError]        = useState('');
+  const [success,      setSuccess]      = useState('');
   const [loading,      setLoading]      = useState(false);
   const [shake,        setShake]        = useState(false);
 
@@ -373,15 +395,25 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
     : 'Enter your registered CNIC';
   const loginTitle    = isTeacher ? 'Teacher Login'                     : 'Student Login';
   const switchLabel   = isTeacher ? 'Student Login'                     : 'Teacher Login';
+  const dateLabel     = isTeacher ? 'Joining Date' : 'Date of Birth';
+
+  const emptyForgot = { cnic: '', email: '', dateValue: '', password: '', confirmPassword: '' };
 
   const triggerShake = () => {
     setShake(true);
     setTimeout(() => setShake(false), 600);
   };
 
+  const goToTab = (tab) => {
+    setError('');
+    setSuccess('');
+    setActiveTab(tab);
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!form.id.trim() || !form.password.trim()) {
       setError('Please fill in all fields.');
@@ -412,18 +444,71 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
   const handleCreatePassword = async (e) => {
     e.preventDefault();
     setError('');
-    if (!createForm.identifier.trim() || !createForm.dob || !createForm.password) {
+    setSuccess('');
+    if (!createForm.identifier.trim() || !createForm.dateValue || !createForm.password) {
       setError('Please fill in all fields.');
       triggerShake();
       return;
     }
     setLoading(true);
     try {
-      await createPassword(isTeacher ? 'teacher' : 'student', createForm.identifier.trim(), createForm.dob, createForm.password);
-      setCreateForm({ identifier: '', dob: '', password: '' });
+      await createPassword(
+        isTeacher ? 'teacher' : 'student',
+        createForm.identifier.trim(),
+        createForm.dateValue,
+        createForm.password
+      );
+      setCreateForm({ identifier: '', dateValue: '', password: '' });
+      setSuccess('Password created successfully. You can now log in.');
       setActiveTab('login');
     } catch (err) {
       setError(err?.response?.data?.message || 'Unable to create password with these details.');
+      triggerShake();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    const { cnic, email, dateValue, password, confirmPassword } = forgotForm;
+    if (!cnic.trim() || !email.trim() || !dateValue || !password || !confirmPassword) {
+      setError('Please fill in all fields.');
+      triggerShake();
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      triggerShake();
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('New password and confirm password do not match.');
+      triggerShake();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const role = isTeacher ? 'teacher' : 'student';
+      const payload = {
+        role,
+        cnic: cnic.trim(),
+        email: email.trim(),
+        password,
+        ...(isTeacher
+          ? { joiningDate: dateValue }
+          : { dateOfBirth: dateValue }),
+      };
+      const result = await forgotPassword(payload);
+      setForgotForm(emptyForgot);
+      setSuccess(result.message || 'Password reset successfully. You can now log in.');
+      setActiveTab('login');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to reset password with these details.');
       triggerShake();
     } finally {
       setLoading(false);
@@ -435,16 +520,25 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
 
       <div className="login-tabs">
         <button
+          type="button"
           className={`login-tab${activeTab === 'login' ? ' active' : ''}`}
-          onClick={() => setActiveTab('login')}
+          onClick={() => goToTab('login')}
         >
           Login
         </button>
         <button
+          type="button"
           className={`login-tab${activeTab === 'create-password' ? ' active' : ''}`}
-          onClick={() => setActiveTab('create-password')}
+          onClick={() => goToTab('create-password')}
         >
           Create Password
+        </button>
+        <button
+          type="button"
+          className={`login-tab${activeTab === 'forgot-password' ? ' active' : ''}`}
+          onClick={() => goToTab('forgot-password')}
+        >
+          Reset
         </button>
       </div>
 
@@ -456,6 +550,16 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
             <p className="login-form-sub">Enter your credentials to access your account</p>
 
             <form onSubmit={handleLogin} className={shake ? 'login-shake' : ''}>
+
+              {success && (
+                <div className="login-success-msg">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth="2.5">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  {success}
+                </div>
+              )}
 
               {error && (
                 <div className="login-error-msg">
@@ -514,7 +618,13 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
                   />
                   <span>Remember Me</span>
                 </label>
-                <a href="#" className="login-forgot">Forgot Password?</a>
+                <button
+                  type="button"
+                  className="login-forgot"
+                  onClick={() => { setForgotForm(emptyForgot); goToTab('forgot-password'); }}
+                >
+                  Forgot Password?
+                </button>
               </div>
 
               <button type="submit" className="login-btn-primary" disabled={loading}>
@@ -532,7 +642,7 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
               <div className="login-switch-row">
                 <span>{isTeacher ? 'Are you a Student?' : 'Are you a Teacher?'}</span>
                 <button type="button" className="login-switch-link"
-                  onClick={() => { setError(''); onSwitch(); }}>
+                  onClick={() => { setError(''); setSuccess(''); onSwitch(); }}>
                   {switchLabel}
                 </button>
               </div>
@@ -545,8 +655,8 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
             <h3 className="login-form-title">Create a Password</h3>
             <p className="login-form-sub">
               {isTeacher
-                ? 'Enter the email address and date of birth provided to the administration.'
-                : 'Enter the registered CNIC and date of birth provided to the administration.'}
+                ? 'Enter the email and joining date saved by the administration.'
+                : 'Enter the registered CNIC and date of birth saved by the administration.'}
             </p>
 
             <form onSubmit={handleCreatePassword} className={shake ? 'login-shake' : ''}>
@@ -571,14 +681,14 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
 
               <div className="login-field-group">
                 <label className="login-label">
-                  DOB <span className="login-required">*</span>
+                  {dateLabel} <span className="login-required">*</span>
                 </label>
                 <div className="login-input-wrap">
                   <input
                     type="date"
                     className="login-input login-input-date"
-                    value={createForm.dob}
-                    onChange={e => { setError(''); setCreateForm(f => ({ ...f, dob: e.target.value })); }}
+                    value={createForm.dateValue}
+                    onChange={e => { setError(''); setCreateForm(f => ({ ...f, dateValue: e.target.value })); }}
                     style={{ paddingLeft: 14 }}
                   />
                 </div>
@@ -619,10 +729,159 @@ function FormPanel({ isTeacher, form, setForm, onSwitch, onLogin }) {
           </div>
         )}
 
+        {activeTab === 'forgot-password' && (
+          <div key="forgot-password" className="form-tab-content">
+            <div className="login-forgot-header">
+              <div className="login-forgot-icon-wrap" aria-hidden="true">
+                <LockIcon />
+              </div>
+              <div>
+                <h3 className="login-form-title">Reset Password</h3>
+                <p className="login-form-sub login-form-sub-tight">
+                  {isTeacher
+                    ? 'Verify your CNIC, email, and joining date exactly as saved by admin.'
+                    : 'Verify your CNIC, email, and date of birth exactly as saved by admin.'}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleForgotPassword} className={shake ? 'login-shake' : ''}>
+
+              {error && (
+                <div className="login-error-msg">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <div className="login-field-group">
+                <label className="login-label">
+                  CNIC <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><IdCardIcon /></span>
+                  <input
+                    type="text"
+                    className="login-input"
+                    placeholder="45601-1234567-1"
+                    value={forgotForm.cnic}
+                    onChange={e => { setError(''); setForgotForm(f => ({ ...f, cnic: e.target.value })); }}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field-group">
+                <label className="login-label">
+                  Email Address <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon"><MailIcon /></span>
+                  <input
+                    type="email"
+                    className="login-input"
+                    placeholder="Enter your registered email"
+                    value={forgotForm.email}
+                    onChange={e => { setError(''); setForgotForm(f => ({ ...f, email: e.target.value })); }}
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field-group">
+                <label className="login-label">
+                  {dateLabel} <span className="login-required">*</span>
+                </label>
+                <div className="login-input-wrap">
+                  <input
+                    type="date"
+                    className="login-input login-input-date"
+                    value={forgotForm.dateValue}
+                    onChange={e => { setError(''); setForgotForm(f => ({ ...f, dateValue: e.target.value })); }}
+                    style={{ paddingLeft: 14 }}
+                  />
+                </div>
+              </div>
+
+              <div className="login-field-row">
+                <div className="login-field-group">
+                  <label className="login-label">
+                    New Password <span className="login-required">*</span>
+                  </label>
+                  <div className="login-input-wrap">
+                    <span className="login-input-icon"><LockIcon /></span>
+                    <input
+                      type={showFpPass ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="New password"
+                      value={forgotForm.password}
+                      onChange={e => { setError(''); setForgotForm(f => ({ ...f, password: e.target.value })); }}
+                      autoComplete="new-password"
+                    />
+                    <button type="button" className="login-eye-btn"
+                      onClick={() => setShowFpPass(p => !p)}
+                      aria-label={showFpPass ? 'Hide password' : 'Show password'}>
+                      {showFpPass ? <EyeClosedIcon /> : <EyeOpenIcon />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="login-field-group">
+                  <label className="login-label">
+                    Confirm <span className="login-required">*</span>
+                  </label>
+                  <div className="login-input-wrap">
+                    <span className="login-input-icon"><LockIcon /></span>
+                    <input
+                      type={showFpConfirm ? 'text' : 'password'}
+                      className="login-input"
+                      placeholder="Confirm password"
+                      value={forgotForm.confirmPassword}
+                      onChange={e => { setError(''); setForgotForm(f => ({ ...f, confirmPassword: e.target.value })); }}
+                      autoComplete="new-password"
+                    />
+                    <button type="button" className="login-eye-btn"
+                      onClick={() => setShowFpConfirm(p => !p)}
+                      aria-label={showFpConfirm ? 'Hide password' : 'Show password'}>
+                      {showFpConfirm ? <EyeClosedIcon /> : <EyeOpenIcon />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" className="login-btn-primary" disabled={loading}>
+                {loading ? (
+                  <span className="login-btn-spinner">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2.5" className="spin-icon">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                    </svg>
+                    Resetting…
+                  </span>
+                ) : 'Reset Password'}
+              </button>
+
+              <button
+                type="button"
+                className="login-btn-back"
+                onClick={() => goToTab('login')}
+              >
+                ← Back to Login
+              </button>
+            </form>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
+
 
 function Login({ onLogin }) {
   const [isTeacher, setIsTeacher] = useState(false);

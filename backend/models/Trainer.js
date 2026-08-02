@@ -4,6 +4,7 @@ const trainerSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
+    cnic: { type: String, unique: true, sparse: true, trim: true },
     employeeId: { type: String, required: true, unique: true, trim: true },
     campus: { type: String, required: true, trim: true },
     phoneNumber: { type: String, trim: true },

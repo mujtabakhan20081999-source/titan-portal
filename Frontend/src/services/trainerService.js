@@ -16,6 +16,11 @@ export async function listTrainers() {
   return data.data;
 }
 
+export async function getMyTrainerProfile() {
+  const { data } = await api.get('/trainers/me');
+  return data.data;
+}
+
 export async function createTrainer(payload) {
   const { data } = await api.post('/trainers', payload);
   return data.data;

@@ -24,6 +24,19 @@ router.get('/', protect, authorize('superadmin', 'subadmin'), async (req, res, n
   }
 });
 
+// Logged-in teacher's own profile
+router.get('/me', protect, authorize('teacher'), async (req, res, next) => {
+  try {
+    const trainer = await Trainer.findOne({ user: req.user.id });
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: 'Trainer profile not found' });
+    }
+    res.json({ success: true, data: trainer });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // @route   GET /api/trainers/:id
 router.get('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
@@ -40,19 +53,23 @@ router.get('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res
 // @route   POST /api/trainers
 router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
-    const { fullName, email, campus } = req.body;
-    if (!fullName || !email || !campus) {
-      return res.status(400).json({ success: false, message: 'full name, email, and campus are required' });
+    const { fullName, email, campus, cnic } = req.body;
+    if (!fullName || !email || !campus || !cnic) {
+      return res.status(400).json({ success: false, message: 'full name, email, CNIC, and campus are required' });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedCnic = String(cnic).trim();
     if (await User.findOne({ email: normalizedEmail })) {
       return res.status(400).json({ success: false, message: 'A user with this email already exists' });
+    }
+    if (await Trainer.findOne({ cnic: normalizedCnic })) {
+      return res.status(400).json({ success: false, message: 'A trainer with this CNIC already exists' });
     }
 
     const employeeId = await generateEmployeeId();
 
-    // Teachers activate their account through Create Password after DOB verification.
+    // Teachers activate via Create Password (email + joining date) or Forgot Password (CNIC + email + joining date).
     const temporaryPassword = require('crypto').randomBytes(24).toString('hex');
     const user = await User.create({
       fullName,
@@ -67,6 +84,7 @@ router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, 
       trainer = await Trainer.create({
         ...req.body,
         email: normalizedEmail,
+        cnic: normalizedCnic,
         employeeId,
         user: user._id,
       });
@@ -91,6 +109,18 @@ router.put('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res
     const updateData = { ...req.body };
     if (updateData.email) {
       updateData.email = String(updateData.email).trim().toLowerCase();
+    }
+    if (updateData.cnic !== undefined) {
+      updateData.cnic = String(updateData.cnic).trim();
+      if (updateData.cnic) {
+        const cnicTaken = await Trainer.findOne({
+          cnic: updateData.cnic,
+          _id: { $ne: trainer._id },
+        });
+        if (cnicTaken) {
+          return res.status(400).json({ success: false, message: 'A trainer with this CNIC already exists' });
+        }
+      }
     }
 
     await User.findByIdAndUpdate(trainer.user, {

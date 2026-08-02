@@ -12,92 +12,136 @@ import {
 } from 'react-icons/fi';
 import '../styles/profile.css';
 import { getMyStudentProfile } from '../services/studentService';
+import { getMyTrainerProfile } from '../services/trainerService';
+import { listMySlots } from '../services/slotService';
 import { listAttendance } from '../services/attendanceService';
 
-const profiles = {
-  student: {
-    name: 'Mujtaba Khan',
-    title: 'Student · TITAN Learning',
-    initials: 'MK',
-    email: 'student@titan.edu.pk',
-    phone: '+92 300 1234567',
-    city: 'Sukkur, Sindh',
-    joined: 'Joined Sep 2024',
-    bio: 'Dedicated student passionate about web development and consistent academic growth.',
-    stats: [
-      { icon: FiCheckCircle, label: 'Attendance', value: '85%', color: '#16a34a' },
-      { icon: FiBookOpen, label: 'Courses', value: '06', color: '#1150c0' },
-      { icon: FiAward, label: 'Avg. Grade', value: 'A-', color: '#d97706' },
-    ],
-    details: [
-      { label: 'Enrollment ID', value: 'TS-2024-118' },
-      { label: 'Program', value: 'Full Stack Web Development' },
-      { label: 'Batch', value: 'Morning · 2024' },
-      { label: 'Status', value: 'Active' },
-    ],
-  },
-  teacher: {
-    name: 'Sir Yasir Ali',
-    title: 'Trainer · TITAN Learning',
-    initials: 'YA',
-    email: 'siryasir@titan.edu.pk',
-    phone: '+92 301 7654321',
-    city: 'Sukkur, Sindh',
-    joined: 'Joined Jan 2022',
-    bio: 'Experienced trainer mentoring students in modern web technologies and best practices.',
-    stats: [
-      { icon: FiBookOpen, label: 'Courses', value: '04', color: '#1150c0' },
-      { icon: FiCheckCircle, label: 'Students', value: '128', color: '#16a34a' },
-      { icon: FiAward, label: 'Rating', value: '4.9', color: '#d97706' },
-    ],
-    details: [
-      { label: 'Staff ID', value: 'TT-2022-007' },
-      { label: 'Department', value: 'Web Development' },
-      { label: 'Experience', value: '6 Years' },
-      { label: 'Status', value: 'Active' },
-    ],
-  },
-};
+function initialsFromName(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'U';
+}
+
+function formatJoined(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `Joined ${date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
+}
 
 function Profile({ role = 'student' }) {
   const navigate = useNavigate();
   const [studentRecord, setStudentRecord] = useState(null);
+  const [trainerRecord, setTrainerRecord] = useState(null);
+  const [assignedSlots, setAssignedSlots] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (role === 'student') {
-      getMyStudentProfile().then(setStudentRecord).catch(() => setStudentRecord(null));
-      listAttendance().then(setAttendanceRecords).catch(() => setAttendanceRecords([]));
-    }
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        if (role === 'student') {
+          const [student, attendance] = await Promise.all([
+            getMyStudentProfile().catch(() => null),
+            listAttendance().catch(() => []),
+          ]);
+          if (!mounted) return;
+          setStudentRecord(student);
+          setAttendanceRecords(attendance);
+        } else if (role === 'teacher') {
+          const [trainer, slotsResult] = await Promise.all([
+            getMyTrainerProfile().catch(() => null),
+            listMySlots().catch(() => ({ data: [] })),
+          ]);
+          if (!mounted) return;
+          setTrainerRecord(trainer);
+          setAssignedSlots(slotsResult.data || []);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, [role]);
 
   const totalAttendance = attendanceRecords.length;
   const presentCount = attendanceRecords.filter((record) => record.status === 'Present').length;
   const attendancePercent = totalAttendance ? Math.round((presentCount / totalAttendance) * 100) : 0;
+  const totalStudents = assignedSlots.reduce((sum, slot) => sum + (Number(slot.filled) || 0), 0);
 
-  const p = studentRecord ? {
-    name: studentRecord.name,
-    title: 'Student · TITAN Learning',
-    initials: studentRecord.name.split(' ').slice(0, 2).map((name) => name[0]).join('').toUpperCase(),
-    email: studentRecord.email || 'Not provided',
-    phone: studentRecord.phone || 'Not provided',
-    city: studentRecord.city || 'Not assigned',
-    joined: studentRecord.createdAt ? `Joined ${new Date(studentRecord.createdAt).toLocaleDateString()}` : '',
-    bio: `${studentRecord.course || 'Course'} student`,
-    stats: [
-      { icon: FiBookOpen, label: 'Course', value: studentRecord.course || 'Not assigned', color: '#1150c0' },
-      { icon: FiAward, label: 'Status', value: studentRecord.status || 'Not assigned', color: '#16a34a' },
-      { icon: FiCheckCircle, label: 'Attendance', value: `${attendancePercent}%`, color: '#9333ea' },
-    ],
-    details: [
-      { label: 'Roll Number', value: studentRecord.roll || '0' },
-      { label: 'Program', value: studentRecord.course || 'Not assigned' },
-      { label: 'Batch', value: studentRecord.meta || 'Not assigned' },
-      { label: 'Payment', value: studentRecord.pay || '0' },
-      { label: 'Attendance', value: `${attendancePercent}%` },
-      { label: 'Avg. Grade', value: studentRecord.grade || '0' },
-    ],
-  } : (profiles[role] || profiles.student);
+  let p;
+  if (role === 'student' && studentRecord) {
+    p = {
+      name: studentRecord.name,
+      title: 'Student · TITAN Learning',
+      initials: initialsFromName(studentRecord.name),
+      email: studentRecord.email || 'Not provided',
+      phone: studentRecord.phone || 'Not provided',
+      city: studentRecord.city || 'Not assigned',
+      joined: formatJoined(studentRecord.createdAt),
+      bio: `${studentRecord.course || 'Course'} student`,
+      stats: [
+        { icon: FiBookOpen, label: 'Course', value: studentRecord.course || 'Not assigned', color: '#1150c0' },
+        { icon: FiAward, label: 'Status', value: studentRecord.status || 'Not assigned', color: '#16a34a' },
+        { icon: FiCheckCircle, label: 'Attendance', value: `${attendancePercent}%`, color: '#9333ea' },
+      ],
+      details: [
+        { label: 'Roll Number', value: studentRecord.roll || '—' },
+        { label: 'CNIC', value: studentRecord.cnic || '—' },
+        { label: 'Program', value: studentRecord.course || 'Not assigned' },
+        { label: 'Batch', value: studentRecord.meta || 'Not assigned' },
+        { label: 'Payment', value: studentRecord.pay || '—' },
+        { label: 'Attendance', value: `${attendancePercent}%` },
+      ],
+    };
+  } else if (role === 'teacher' && trainerRecord) {
+    p = {
+      name: trainerRecord.fullName,
+      title: 'Trainer · TITAN Learning',
+      initials: initialsFromName(trainerRecord.fullName),
+      email: trainerRecord.email || 'Not provided',
+      phone: trainerRecord.phoneNumber || 'Not provided',
+      city: trainerRecord.campus || 'Not assigned',
+      joined: formatJoined(trainerRecord.joiningDate || trainerRecord.createdAt),
+      bio: trainerRecord.qualification
+        ? `${trainerRecord.qualification}${trainerRecord.experience ? ` · ${trainerRecord.experience} yrs experience` : ''}`
+        : 'TITAN Learning trainer',
+      stats: [
+        { icon: FiBookOpen, label: 'Assigned Slots', value: String(assignedSlots.length), color: '#1150c0' },
+        { icon: FiCheckCircle, label: 'Students', value: String(totalStudents), color: '#16a34a' },
+        { icon: FiAward, label: 'Status', value: trainerRecord.status || 'Active', color: '#d97706' },
+      ],
+      details: [
+        { label: 'Employee ID', value: trainerRecord.employeeId || '—' },
+        { label: 'CNIC', value: trainerRecord.cnic || '—' },
+        { label: 'Campus', value: trainerRecord.campus || '—' },
+        { label: 'Gender', value: trainerRecord.gender || '—' },
+        { label: 'Qualification', value: trainerRecord.qualification || '—' },
+        { label: 'Experience', value: trainerRecord.experience != null ? `${trainerRecord.experience} Years` : '—' },
+        { label: 'Joining Date', value: trainerRecord.joiningDate ? new Date(trainerRecord.joiningDate).toLocaleDateString() : '—' },
+        { label: 'Status', value: trainerRecord.status || 'Active' },
+      ],
+    };
+  } else {
+    p = {
+      name: loading ? 'Loading…' : 'Profile unavailable',
+      title: role === 'teacher' ? 'Trainer · TITAN Learning' : 'Student · TITAN Learning',
+      initials: '—',
+      email: '—',
+      phone: '—',
+      city: '—',
+      joined: '',
+      bio: loading ? 'Fetching your profile…' : 'Unable to load profile. Please contact administration.',
+      stats: [],
+      details: [],
+    };
+  }
 
   const contacts = [
     { icon: FiMail,     value: p.email },
@@ -136,19 +180,21 @@ function Profile({ role = 'student' }) {
         </aside>
 
         <section className="profile-main">
-          <div className="profile-stats">
-            {p.stats.map((s) => (
-              <div key={s.label} className="profile-stat">
-                <span className="profile-stat-icon" style={{ color: s.color, background: `${s.color}15` }}>
-                  <s.icon size={20} />
-                </span>
-                <div>
-                  <strong>{s.value}</strong>
-                  <span>{s.label}</span>
+          {p.stats.length > 0 && (
+            <div className="profile-stats">
+              {p.stats.map((s) => (
+                <div key={s.label} className="profile-stat">
+                  <span className="profile-stat-icon" style={{ color: s.color, background: `${s.color}15` }}>
+                    <s.icon size={20} />
+                  </span>
+                  <div>
+                    <strong>{s.value}</strong>
+                    <span>{s.label}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="profile-info-card">
             <h3>Contact Information</h3>
@@ -163,12 +209,18 @@ function Profile({ role = 'student' }) {
 
             <h3 className="profile-info-subhead">Account Details</h3>
             <div className="profile-details">
-              {p.details.map((d) => (
-                <div key={d.label} className="profile-detail">
-                  <span className="profile-detail-label">{d.label}</span>
-                  <span className="profile-detail-value">{d.value}</span>
+              {p.details.length === 0 ? (
+                <div style={{ padding: 12, color: '#64748b' }}>
+                  {loading ? 'Loading account details…' : 'No account details available.'}
                 </div>
-              ))}
+              ) : (
+                p.details.map((d) => (
+                  <div key={d.label} className="profile-detail">
+                    <span className="profile-detail-label">{d.label}</span>
+                    <span className="profile-detail-value">{d.value}</span>
+                  </div>
+                ))
+              )}
             </div>
 
             {role === 'student' && (
@@ -184,6 +236,26 @@ function Profile({ role = 'student' }) {
                         <span>{record.status || 'Absent'}</span>
                         <span>{record.checkIn || '—'}</span>
                         <span>{record.remarks || '—'}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+
+            {role === 'teacher' && (
+              <>
+                <h3 className="profile-info-subhead" style={{ marginTop: 24 }}>Assigned Slots</h3>
+                <div className="profile-attendance-list">
+                  {assignedSlots.length === 0 ? (
+                    <div style={{ padding: 18, color: '#64748b' }}>No slots assigned yet.</div>
+                  ) : (
+                    assignedSlots.map((slot) => (
+                      <div key={slot._id || slot.slotId} className="profile-attendance-row">
+                        <span>{slot.course}</span>
+                        <span>{slot.campus}</span>
+                        <span>{slot.days}</span>
+                        <span>{slot.time}</span>
                       </div>
                     ))
                   )}

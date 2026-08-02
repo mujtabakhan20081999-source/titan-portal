@@ -115,18 +115,27 @@ function ToggleRow({ label, desc, checked, onChange }) {
   );
 }
 
-function ProfileSection({ role, userName }) {
+function ProfileSection({ role, userName, userEmail }) {
   const [saved, setSaved] = useState(false);
   const [avatarColor, setAvatarColor] = useState('#1150c0');
   const [form, setForm] = useState({
     firstName: userName?.split(' ')[0] || '',
     lastName:  userName?.split(' ').slice(1).join(' ') || '',
-    email:     role === 'teacher' ? 'siryasir@titan.edu.pk' : 'student@titan.edu.pk',
+    email:     userEmail || '',
     phone:     '',
     bio:       '',
     city:      'Sukkur',
     gender:    'male',
   });
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      firstName: userName?.split(' ')[0] || '',
+      lastName: userName?.split(' ').slice(1).join(' ') || '',
+      email: userEmail || prev.email,
+    }));
+  }, [userName, userEmail]);
 
   const initials = [form.firstName[0], form.lastName[0]].filter(Boolean).join('').toUpperCase() || 'U';
 
@@ -443,7 +452,7 @@ function AccountSection({ onLogout }) {
   );
 }
 
-function Settings({ role = 'student', userName = 'Mujtaba Khan', onLogout }) {
+function Settings({ role = 'student', userName = 'User', userEmail = '', onLogout }) {
   const [activeSection, setActiveSection] = useState('appearance');
   const [theme, setTheme]                 = useState(() => localStorage.getItem('titan-theme') || 'light');
   const [toast, setToast]                 = useState(false);

@@ -1,7 +1,3 @@
-/* ══════════════════════════════════════════════════════════════════════
-   Sub-Admin city selection — TITAN theme (blue #0A3D91 / gold #F3C623)
-   Animated city cards shown right after sub-admin login
-   ══════════════════════════════════════════════════════════════════════ */
 .sac-page {
   min-height: 100vh;
   background: #eef2f9;
@@ -228,6 +224,28 @@
 .admin-sidebar.collapsed .sas-city span { display: none; }
 
 /* Attendance calendar */
+.subadmin-attendance-page {
+  padding: 2px 0;
+}
+.subadmin-attendance-page .ap-head {
+  background: linear-gradient(135deg, rgba(10,61,145,0.04), rgba(243,198,35,0.08));
+  border: 1px solid #e2e9f6;
+  border-radius: 18px;
+  padding: 16px 18px;
+}
+.subadmin-attendance-page .ap-tabs .ap-tab {
+  border: 1px solid #dbe6f9;
+  background: #fff;
+  color: #0A3D91;
+}
+.subadmin-attendance-page .ap-tabs .ap-tab.active {
+  background: linear-gradient(135deg, #0A3D91, #1150c0);
+  color: #fff;
+  border-color: #0A3D91;
+}
+.subadmin-attendance-page .acard {
+  box-shadow: 0 4px 14px rgba(10,61,145,0.05);
+}
 .att-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .att-cal-head {
   font-size: 10px; font-weight: 800; color: #7286a3;

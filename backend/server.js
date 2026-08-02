@@ -11,6 +11,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const slotRoutes = require('./routes/slotRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const masterRoutes = require('./routes/masterRoutes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/master', masterRoutes);
 
 // 404 + error handling (must be last)
 app.use(notFound);

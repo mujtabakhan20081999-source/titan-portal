@@ -306,10 +306,18 @@ function TeacherAttendance() {
     ? Math.round(attendanceRecords.filter((r) => r.status === 'Present').length / Math.max(1, attendanceRecords.length) * 100)
     : 0;
 
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user')) || {};
+    } catch {
+      return {};
+    }
+  })();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <TopBar
-        userName="Sir Yasir Ali"
+        userName={storedUser.fullName || 'Trainer'}
         userRole="Trainer"
         pageTitle="Student Attendance"
         pageSubtitle="View and manage student attendance records."

@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Trainer = require('../models/Trainer');
+const { protect } = require('../middleware/auth');
+const { getPermissionsForRole, LABEL_TO_MODULE, hasPermission } = require('../middleware/permissions');
 
 const router = express.Router();
 
@@ -22,26 +24,49 @@ function dayRange(value) {
   return { $gte: date, $lt: nextDay };
 }
 
-// @route   POST /api/auth/create-password
-// A student verifies their CNIC + DOB; a teacher verifies email + DOB.
+async function userPayload(user) {
+  const permissions = ['superadmin', 'subadmin', 'teacher'].includes(user.role)
+    ? await getPermissionsForRole(user.role)
+    : {};
+  return {
+    id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    campus: user.campus,
+    status: user.status,
+    permissions,
+  };
+}
+
 router.post('/create-password', async (req, res, next) => {
   try {
-    const { role, identifier, dateOfBirth, password } = req.body;
-    if (!['student', 'teacher'].includes(role) || !identifier || !dateOfBirth || !password) {
-      return res.status(400).json({ success: false, message: 'Role, identifier, date of birth and password are required' });
+    const { role, identifier, dateOfBirth, joiningDate, password } = req.body;
+    const dateValue = role === 'teacher' ? (joiningDate || dateOfBirth) : dateOfBirth;
+
+    if (!['student', 'teacher'].includes(role) || !identifier || !dateValue || !password) {
+      return res.status(400).json({
+        success: false,
+        message: role === 'teacher'
+          ? 'Role, email, joining date and password are required'
+          : 'Role, CNIC, date of birth and password are required',
+      });
     }
     if (String(password).length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
     }
 
-    const dob = dayRange(dateOfBirth);
-    if (!dob) {
-      return res.status(400).json({ success: false, message: 'Enter a valid date of birth' });
+    const dateFilter = dayRange(dateValue);
+    if (!dateFilter) {
+      return res.status(400).json({
+        success: false,
+        message: role === 'teacher' ? 'Enter a valid joining date' : 'Enter a valid date of birth',
+      });
     }
 
     const account = role === 'student'
-      ? await Student.findOne({ cnic: String(identifier).trim(), dateOfBirth: dob })
-      : await Trainer.findOne({ email: String(identifier).trim().toLowerCase(), dateOfBirth: dob });
+      ? await Student.findOne({ cnic: String(identifier).trim(), dateOfBirth: dateFilter })
+      : await Trainer.findOne({ email: String(identifier).trim().toLowerCase(), joiningDate: dateFilter });
 
     if (!account || !account.user) {
       return res.status(401).json({ success: false, message: 'The provided details do not match an account' });
@@ -62,13 +87,108 @@ router.post('/create-password', async (req, res, next) => {
   }
 });
 
-// @route   POST /api/auth/register
-// Public registration is disabled: only administrators may create student and trainer accounts.
-router.post('/register', async (req, res, next) => {
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { role, cnic, email, dateOfBirth, joiningDate, password } = req.body;
+
+    if (!['student', 'teacher'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Role must be student or teacher' });
+    }
+    if (!cnic || !email || !password) {
+      return res.status(400).json({ success: false, message: 'CNIC, email and new password are required' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const dateValue = role === 'student' ? dateOfBirth : joiningDate;
+    if (!dateValue) {
+      return res.status(400).json({
+        success: false,
+        message: role === 'student' ? 'Date of birth is required' : 'Joining date is required',
+      });
+    }
+
+    const dateFilter = dayRange(dateValue);
+    if (!dateFilter) {
+      return res.status(400).json({
+        success: false,
+        message: role === 'student' ? 'Enter a valid date of birth' : 'Enter a valid joining date',
+      });
+    }
+
+    const normalizedCnic = String(cnic).trim();
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const account = role === 'student'
+      ? await Student.findOne({ cnic: normalizedCnic, email: normalizedEmail, dateOfBirth: dateFilter })
+      : await Trainer.findOne({ cnic: normalizedCnic, email: normalizedEmail, joiningDate: dateFilter });
+
+    if (!account || !account.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'The provided details do not match an account. Please verify the information saved by admin.',
+      });
+    }
+
+    const user = await User.findById(account.user).select('+password');
+    if (!user || user.role !== role) {
+      return res.status(401).json({
+        success: false,
+        message: 'The provided details do not match an account. Please verify the information saved by admin.',
+      });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({
+        success: false,
+        message: 'No password has been set yet. Please use Create Password first.',
+      });
+    }
+
+    user.password = password;
+    user.status = 'Active';
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/admin-forgot-password', async (req, res, next) => {
+  try {
+    const { email, fullName, password } = req.body;
+    if (!email || !fullName || !password) {
+      return res.status(400).json({ success: false, message: 'Email, full name and new password are required' });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await User.findOne({
+      email: String(email).trim().toLowerCase(),
+      role: { $in: ['superadmin', 'subadmin'] },
+    }).select('+password');
+
+    if (!user || String(user.fullName).trim().toLowerCase() !== String(fullName).trim().toLowerCase()) {
+      return res.status(401).json({ success: false, message: 'Admin details do not match any account' });
+    }
+
+    user.password = password;
+    user.status = 'Active';
+    await user.save();
+
+    res.json({ success: true, message: 'Admin password reset successfully. You can now log in.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/register', async (req, res) => {
   res.status(403).json({ success: false, message: 'Registration is disabled. Accounts may only be created by administrators.' });
 });
 
-// @route   POST /api/auth/login
 router.post('/login', async (req, res, next) => {
   try {
     const identifier = req.body.identifier || req.body.email || req.body.id;
@@ -79,13 +199,12 @@ router.post('/login', async (req, res, next) => {
     }
 
     let user = null;
-    let student = null;
     const isEmail = String(identifier).includes('@');
 
     if (isEmail) {
       user = await User.findOne({ email: identifier.toLowerCase().trim() }).select('+password');
     } else {
-      student = await Student.findOne({ cnic: String(identifier).trim() });
+      const student = await Student.findOne({ cnic: String(identifier).trim() });
       if (student && student.user) {
         user = await User.findById(student.user).select('+password');
       }
@@ -105,18 +224,54 @@ router.post('/login', async (req, res, next) => {
     }
 
     const token = signToken(user);
+    const payload = await userPayload(user);
 
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        campus: user.campus,
-      },
+    res.json({ success: true, token, user: payload });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/me', protect, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    const payload = await userPayload(user);
+    const menu = Object.keys(LABEL_TO_MODULE).filter((label) => {
+      const moduleName = LABEL_TO_MODULE[label];
+      return user.role === 'superadmin' || hasPermission(payload.permissions, moduleName, 'read');
     });
+    res.json({ success: true, data: { ...payload, menu } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/change-password', protect, async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current and new password are required' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user || !user.password) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const ok = await user.comparePassword(currentPassword);
+    if (!ok) {
+      return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+    res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {
     next(error);
   }

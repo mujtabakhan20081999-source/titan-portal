@@ -15,6 +15,7 @@ function TrainerModal({
     return {
       fullName: '',
       email: '',
+      cnic: '',
       phoneNumber: '',
       campus: '',
       gender: '',
@@ -44,6 +45,7 @@ function TrainerModal({
     const required = [
       'fullName',
       'email',
+      'cnic',
       'phoneNumber',
       'campus',
       'gender',
@@ -63,6 +65,11 @@ function TrainerModal({
 
     const email = String(form.email || '').trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email';
+
+    const cnic = String(form.cnic || '').trim();
+    if (cnic && !/^\d{5}-\d{7}-\d$/.test(cnic)) {
+      e.cnic = 'CNIC must look like 45601-1234567-1';
+    }
 
     const phone = String(form.phoneNumber || '').trim();
     if (phone) {
@@ -146,7 +153,7 @@ function TrainerModal({
             className="tmg-form"
             onSubmit={(e) => {
               e.preventDefault();
-              setTouched((t) => ({ ...t, fullName: true, email: true, phoneNumber: true }));
+              setTouched((t) => ({ ...t, fullName: true, email: true, cnic: true, phoneNumber: true }));
               onSubmit(form, isValid);
             }}
           >
@@ -169,6 +176,17 @@ function TrainerModal({
                   onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                 />
                 {touched.email && errors.email && <div className="tmg-error">{errors.email}</div>}
+              </div>
+
+              <div className="tmg-field">
+                <label>CNIC *</label>
+                <input
+                  value={form.cnic || ''}
+                  onChange={handleChange('cnic')}
+                  onBlur={() => setTouched((t) => ({ ...t, cnic: true }))}
+                  placeholder="45601-1234567-1"
+                />
+                {touched.cnic && errors.cnic && <div className="tmg-error">{errors.cnic}</div>}
               </div>
 
               <div className="tmg-field">

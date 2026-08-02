@@ -1,20 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2, Clock3, XCircle, ScanLine, Search, CalendarDays,
-  UserCheck, UserX, Coffee, Save, Users,
+  UserCheck, Users, AlertTriangle,
 } from 'lucide-react';
-import { listStudents } from '../../services/studentService';
-import { listAttendance, createAttendance, updateAttendance, deleteAttendance } from '../../services/attendanceService';
-
+import {
+  listAttendance,
+  lookupAttendanceStudent,
+  getAttendanceSummary,
+  createAttendance,
+  createMultiAttendance,
+} from '../../services/attendanceService';
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
 const AV = ['#2563eb', '#db2777', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#0A3D91'];
+const STATUS_BADGE = { Present: 'badge-green', Leave: 'badge-amber', Absent: 'badge-grey', Late: 'badge-blue' };
 
-const STATUS_BADGE = { Present: 'badge-green', Leave: 'badge-amber', Absent: 'badge-grey' };
-
-function initials(name) {
-  return name.split(' ').slice(0, 2).map((w) => w[0]).join('');
+function initials(name = '') {
+  return name.split(' ').slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
 }
 
 function nowLabel() {
@@ -26,13 +29,33 @@ function nowLabel() {
   return `${h}:${m} ${ampm}`;
 }
 
+function monthDays(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
 export default function AdminAttendance() {
   const [tab, setTab] = useState('mark');
-
-  // ── Records from backend ──
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [toast, setToast] = useState('');
+
+  const [rollInput, setRollInput] = useState('');
+  const [lookup, setLookup] = useState(null);
+  const [notFound, setNotFound] = useState(false);
+  const [recent, setRecent] = useState([]);
+
+  const [viewRoll, setViewRoll] = useState('');
+  const [summary, setSummary] = useState(null);
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  const [multiDate, setMultiDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [multiRolls, setMultiRolls] = useState('');
+  const [multiStatus, setMultiStatus] = useState('Present');
+  const [multiResult, setMultiResult] = useState(null);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -41,113 +64,144 @@ export default function AdminAttendance() {
       const data = await listAttendance();
       setRecords(data || []);
     } catch (err) {
-      setFetchError(err?.response?.data?.message || err.message || 'Failed to load records');
+      setFetchError(err?.response?.data?.message || 'Failed to load records');
       setRecords([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => { fetchRecords(); }, [fetchRecords]);
+
   useEffect(() => {
-    fetchRecords();
+    if (records.length && recent.length === 0) {
+      setRecent(records.slice(0, 8).map((r) => ({
+        _id: r._id,
+        roll: r.studentId,
+        name: r.studentName || 'Unknown',
+        status: r.status,
+        time: r.checkIn || new Date(r.date).toLocaleTimeString(),
+      })));
+    }
+  }, [records, recent.length]);
 
-    const fetchStudents = async () => {
-      try {
-        const list = await listStudents();
-        setStudents(list || []);
-      } catch (err) {
-        console.error('Failed to load students for attendance lookup:', err);
-        setStudents([]);
-      }
-    };
-
-    fetchStudents();
-  }, [fetchRecords]);
-
-  // ── Mark tab state ──
-  const [rollInput, setRollInput] = useState('');
-  const [selected, setSelected] = useState(null);
-  const [notFound, setNotFound] = useState(false);
-  const [recent, setRecent] = useState([]);
-  const [students, setStudents] = useState([]);
-
-  const lookup = () => {
-    const q = rollInput.trim().toLowerCase();
+  const doLookup = async () => {
+    const q = rollInput.trim();
     if (!q) return;
-    const found = students.find((s) => s.roll?.toLowerCase() === q || s.name?.toLowerCase().includes(q));
-    setSelected(found || null);
-    setNotFound(!found);
+    setNotFound(false);
+    setLookup(null);
+    try {
+      const data = await lookupAttendanceStudent(q);
+      setLookup(data);
+    } catch {
+      setNotFound(true);
+    }
   };
 
-  const mark = async (status) => {
-    if (!selected) return;
+  const mark = async (status, force = false) => {
+    if (!lookup?.student) return;
     try {
-      const payload = {
-        studentId: selected.roll,
-        studentName: selected.name,
-        date: new Date(),
+      const result = await createAttendance({
+        studentId: lookup.student.roll,
         status,
+        date: new Date().toISOString(),
         checkIn: status === 'Present' || status === 'Late' ? nowLabel() : null,
-        checkOut: null,
-        remarks: '',
-      };
-      const created = await createAttendance(payload);
+        force,
+      });
+
+      if (result.duplicate) {
+        setToast('Already marked today. Use Force to overwrite.');
+        return;
+      }
+
+      const created = result.data;
       setRecent((prev) => [
-        { _id: created._id, roll: selected.roll || '', name: selected.name || 'Unknown', status, time: nowLabel() },
+        { _id: created._id, roll: lookup.student.roll, name: lookup.student.name, status, time: nowLabel() },
         ...prev,
       ].slice(0, 8));
-      setSelected(null);
+
+      if (result.paymentWarning) {
+        setToast(`Marked ${status}. Warning: student has unpaid fees (${result.payment?.payStatus || 'Pending'}).`);
+      } else {
+        setToast(`Attendance marked: ${status}`);
+      }
+
+      setLookup(null);
       setRollInput('');
-      setNotFound(false);
       await fetchRecords();
     } catch (err) {
-      console.error('Failed to mark attendance:', err);
+      if (err?.response?.status === 409) {
+        setToast(err.response.data.message || 'Already marked for today');
+        setLookup((prev) => prev ? { ...prev, alreadyMarked: true, todayRecord: err.response.data.data } : prev);
+      } else {
+        setToast(err?.response?.data?.message || 'Failed to mark attendance');
+      }
+    }
+  };
+
+  const loadSummary = async () => {
+    if (!viewRoll.trim()) return;
+    try {
+      const data = await getAttendanceSummary(viewRoll.trim(), viewMonth);
+      setSummary(data);
+    } catch (err) {
+      setToast(err?.response?.data?.message || 'Student not found');
+      setSummary(null);
+    }
+  };
+
+  const runMulti = async () => {
+    try {
+      const result = await createMultiAttendance({
+        date: multiDate,
+        rolls: multiRolls,
+        status: multiStatus,
+      });
+      setMultiResult(result.data);
+      setToast(`Multi mark done: ${result.data.marked.length} marked, ${result.data.skipped.length} skipped, ${result.data.notFound.length} not found`);
+      await fetchRecords();
+    } catch (err) {
+      setToast(err?.response?.data?.message || 'Multi attendance failed');
     }
   };
 
   const todayCounts = useMemo(() => {
     const c = { Present: 0, Leave: 0, Absent: 0 };
-    recent.forEach((r) => { c[r.status] += 1; });
+    recent.forEach((r) => { if (c[r.status] !== undefined) c[r.status] += 1; });
     return c;
   }, [recent]);
 
-  // Init recent from fetched records
-  useEffect(() => {
-    if (records.length > 0 && recent.length === 0) {
-      const mapped = records.slice(0, 8).map((r) => ({
-        _id: r._id,
-        roll: r.roll || '',
-        name: r.trainerName || r.name || 'Unknown',
-        status: r.status || 'Present',
-        time: r.checkIn || new Date(r.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      }));
-      setRecent(mapped);
-    }
-  }, [records]);
+  const calendarMap = useMemo(() => {
+    const map = {};
+    (summary?.records || []).forEach((r) => {
+      const day = new Date(r.date).getDate();
+      map[day] = r.status;
+    });
+    return map;
+  }, [summary]);
+
+  const [year, month] = viewMonth.split('-').map(Number);
+  const daysInMonth = monthDays(year, month);
 
   return (
     <div className="ap-page">
       <div className="ap-head">
         <div>
           <h2>Attendance</h2>
-          <p>Mark and review student attendance across campuses.</p>
+          <p>Mark by roll, view calendar totals, and multi-mark with persistence.</p>
         </div>
         <div className="ap-tabs">
-          <button className={`ap-tab${tab === 'mark' ? ' active' : ''}`} onClick={() => setTab('mark')}>
-            <UserCheck size={16} /> Mark Attendance
-          </button>
-          <button className={`ap-tab${tab === 'view' ? ' active' : ''}`} onClick={() => setTab('view')}>
-            <CalendarDays size={16} /> View Attendance
-          </button>
-          <button className={`ap-tab${tab === 'multi' ? ' active' : ''}`} onClick={() => setTab('multi')}>
-            <Users size={16} /> Multi Attendance
-          </button>
+          <button className={`ap-tab${tab === 'mark' ? ' active' : ''}`} onClick={() => setTab('mark')}><UserCheck size={16} /> Mark</button>
+          <button className={`ap-tab${tab === 'view' ? ' active' : ''}`} onClick={() => setTab('view')}><CalendarDays size={16} /> View</button>
+          <button className={`ap-tab${tab === 'multi' ? ' active' : ''}`} onClick={() => setTab('multi')}><Users size={16} /> Multi</button>
         </div>
       </div>
 
+      {toast && <div className="ap-hint ok" style={{ marginBottom: 12 }}>{toast}</div>}
+      {fetchError && <div className="ap-hint err" style={{ marginBottom: 12 }}>{fetchError}</div>}
+
       {tab === 'mark' && (
         <div className="ap-2col-a">
-          {/* Mark card */}
           <div className="acard">
             <div className="acard-head" style={{ marginBottom: 14 }}>
               <span className="acard-title">Mark Attendance</span>
@@ -162,262 +216,154 @@ export default function AdminAttendance() {
                   placeholder="Enter or scan roll number…"
                   value={rollInput}
                   onChange={(e) => setRollInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && lookup()}
+                  onKeyDown={(e) => e.key === 'Enter' && doLookup()}
                 />
               </label>
-              <button className="btn-primary" onClick={lookup}>
-                <ScanLine size={15} /> Scan
-              </button>
+              <button className="btn-primary" onClick={doLookup}><ScanLine size={15} /> Scan</button>
             </div>
 
-            {notFound && (
-              <div className="ap-hint err" style={{ marginTop: 12 }}>
-                No record found for "{rollInput}". Try a name from existing data.
-              </div>
-            )}
+            {notFound && <div className="ap-hint err" style={{ marginTop: 12 }}>No student found for "{rollInput}".</div>}
 
-            {selected ? (
+            {lookup?.student && (
               <>
                 <div className="att-profile" style={{ marginTop: 16 }}>
-                  <div className="att-profile-av" style={{ background: AV[0] }}>{initials(selected.trainerName || selected.name || '')}</div>
+                  <div className="att-profile-av" style={{
+                    background: AV[0],
+                    backgroundImage: lookup.student.photoUrl ? `url(${lookup.student.photoUrl})` : undefined,
+                    backgroundSize: 'cover',
+                  }}>
+                    {!lookup.student.photoUrl && initials(lookup.student.name)}
+                  </div>
                   <div>
-                    <div className="att-profile-name">{selected.trainerName || selected.name}</div>
-                    <div className="att-profile-meta">Status: <b>{selected.status}</b></div>
-                    <div className="att-profile-meta">{selected.remarks || ''}</div>
+                    <div className="att-profile-name">{lookup.student.name}</div>
+                    <div className="att-profile-meta">Roll: <b>{lookup.student.roll}</b> · {lookup.student.course || '—'}</div>
+                    <div className="att-profile-meta">Status: <b>{lookup.student.status}</b> · Pay: <b>{lookup.student.pay}</b></div>
                   </div>
                 </div>
 
+                {lookup.payment?.warning && (
+                  <div className="ap-hint err" style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <AlertTriangle size={16} /> Unpaid fee warning — you can still mark attendance.
+                  </div>
+                )}
+
+                {lookup.alreadyMarked && (
+                  <div className="ap-hint err" style={{ marginTop: 12 }}>
+                    Already marked today as <b>{lookup.todayRecord?.status}</b>. Marking again requires Force.
+                  </div>
+                )}
+
                 <div className="att-actions" style={{ marginTop: 16 }}>
-                  <button className="att-btn present" onClick={() => mark('Present')}>
-                    <CheckCircle2 size={17} /> Mark Present
-                  </button>
-                  <button className="att-btn leave" onClick={() => mark('Leave')}>
-                    <Clock3 size={17} /> Mark Leave
-                  </button>
-                  <button className="att-btn absent" onClick={() => mark('Absent')}>
-                    <XCircle size={17} /> Mark Absent
-                  </button>
+                  <button className="att-btn present" onClick={() => mark('Present', lookup.alreadyMarked)}><CheckCircle2 size={17} /> Present</button>
+                  <button className="att-btn leave" onClick={() => mark('Leave', lookup.alreadyMarked)}><Clock3 size={17} /> Leave</button>
+                  <button className="att-btn absent" onClick={() => mark('Absent', lookup.alreadyMarked)}><XCircle size={17} /> Absent</button>
                 </div>
               </>
-            ) : (
-              <div style={{
-                marginTop: 16, padding: '30px 16px', textAlign: 'center',
-                border: '1px dashed #cdd8ea', borderRadius: 14, color: '#7286a3',
-              }}>
-                <ScanLine size={30} color="#b3bfd2" />
-                <div style={{ fontWeight: 700, marginTop: 8, color: '#5F7A9E' }}>Scan or search a roll number to begin</div>
-              </div>
             )}
           </div>
 
-          {/* Recent card */}
-          <div className="acard" style={{ padding: 0 }}>
-            <div className="acard-head" style={{ padding: '16px 16px 12px', marginBottom: 0 }}>
-              <span className="acard-title">Recent Attendance</span>
-              <button className="btn-ghost" style={{ padding: '6px 10px', fontSize: 11.5 }} onClick={fetchRecords}>Refresh</button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px' }}>
-              <span className="badge badge-green">{todayCounts.Present} Present</span>
-              <span className="badge badge-amber">{todayCounts.Leave} Leave</span>
-              <span className="badge badge-grey">{todayCounts.Absent} Absent</span>
-            </div>
-
-            <div style={{ padding: '0 16px 12px' }}>
-              {loading ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#7286a3', fontWeight: 700 }}>Loading...</div>
-              ) : fetchError ? (
-                <div style={{ padding: 24, textAlign: 'center' }}>
-                  <div style={{ color: '#dc2626', fontWeight: 700, fontSize: 13 }}>{fetchError}</div>
-                  <button className="btn-ghost" style={{ marginTop: 8, padding: '6px 12px', fontSize: 12 }} onClick={fetchRecords}>Retry</button>
-                </div>
-              ) : recent.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', color: '#7286a3', fontWeight: 700 }}>No records yet today.</div>
-              ) : recent.map((r, i) => (
-                <div className="att-recent-row" key={r._id || i}>
-                  <div className="att-recent-av" style={{ background: AV[i % AV.length] }}>{initials(r.name)}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="atable-cell-strong">{r.name}</div>
-                    <div className="atable-cell-sub">{r.roll ? `${r.roll} · ` : ''}{r.time}</div>
-                  </div>
-                  <span className={`badge ${STATUS_BADGE[r.status]}`}>{r.status}</span>
+          <div className="acard">
+            <div className="acard-head"><span className="acard-title">Today Snapshot</span></div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              {Object.entries(todayCounts).map(([k, v]) => (
+                <div key={k} style={{ flex: 1, background: '#f8fafc', borderRadius: 12, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontWeight: 800, fontSize: 22 }}>{v}</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>{k}</div>
                 </div>
               ))}
             </div>
+            <div className="acard-title" style={{ marginBottom: 8 }}>Recent</div>
+            {recent.map((r) => (
+              <div key={r._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eef2f7', fontSize: 13 }}>
+                <span>{r.name} ({r.roll})</span>
+                <span className={`badge ${STATUS_BADGE[r.status] || 'badge-grey'}`}>{r.status}</span>
+              </div>
+            ))}
+            {loading && <div style={{ color: '#64748b', marginTop: 8 }}>Loading…</div>}
           </div>
         </div>
       )}
 
-      {tab === 'view' && <ViewAttendance records={records} loading={loading} fetchError={fetchError} onRetry={fetchRecords} />}
-      {tab === 'multi' && <MultiAttendance records={records} onRefresh={fetchRecords} />}
-    </div>
-  );
-}
-
-/* ── View tab ─────────────────────────────────────────────────────────── */
-function ViewAttendance({ records, loading, fetchError, onRetry }) {
-  const [status, setStatus] = useState('All');
-  const [q, setQ] = useState('');
-
-  const rows = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    return (records || []).filter((r) => {
-      if (status !== 'All' && r.status !== status) return false;
-      if (!query) return true;
-      const name = (r.trainerName || r.name || '').toLowerCase();
-      const roll = (r.roll || '').toLowerCase();
-      return name.includes(query) || roll.includes(query);
-    });
-  }, [records, status, q]);
-
-  const counts = (records || []).reduce((a, r) => { a[r.status] = (a[r.status] || 0) + 1; return a; }, {});
-  const GRID = '120px 110px 1.4fr 1.4fr 110px';
-
-  return (
-    <>
-      <div className="ap-3col">
-        {[
-          { label: 'Present', value: counts.Present || 0, bg: '#dcfce7', color: '#16a34a', Icon: UserCheck },
-          { label: 'On Leave', value: counts.Leave || 0, bg: '#fef3c7', color: '#d97706', Icon: Coffee },
-          { label: 'Absent', value: counts.Absent || 0, bg: '#fee2e2', color: '#dc2626', Icon: UserX },
-        ].map((s) => (
-          <div className="acard" key={s.label}>
-            <div className="ap-kpi">
-              <div className="ap-kpi-ic" style={{ background: s.bg }}><s.Icon size={24} color={s.color} /></div>
-              <div>
-                <div className="ap-kpi-val" style={{ color: s.color }}>{s.value}</div>
-                <div className="ap-kpi-label">{s.label} — all records</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="acard" style={{ padding: 0 }}>
-        <div className="acard-head" style={{ padding: '16px 16px 12px', marginBottom: 0, gap: 10 }}>
-          <span className="acard-title">Attendance Records</span>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <label className="admin-search" style={{ minWidth: 180 }}>
-              <Search size={15} color="#5F7A9E" />
-              <input type="search" placeholder="Search name / roll…" value={q} onChange={(e) => setQ(e.target.value)} />
+      {tab === 'view' && (
+        <div className="acard">
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+            <label className="admin-search" style={{ flex: '1 1 220px' }}>
+              <Search size={16} />
+              <input placeholder="Roll number" value={viewRoll} onChange={(e) => setViewRoll(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadSummary()} />
             </label>
-            <select className="afilter-select" style={{ width: 'auto', minWidth: 130 }} value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option>All</option><option>Present</option><option>Leave</option><option>Absent</option>
-            </select>
-            <button className="btn-ghost" style={{ padding: '7px 12px', fontSize: 12 }} onClick={onRetry}>Refresh</button>
+            <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)} />
+            <button className="btn-primary" onClick={loadSummary}>View</button>
           </div>
-        </div>
 
-        <div className="admin-scroll-x">
-          <div className="atable" style={{ minWidth: 720 }}>
-            <div className="atable-head" style={{ gridTemplateColumns: GRID }}>
-              <span>Date</span><span>Roll No</span><span>Student</span><span>Course</span><span>Status</span>
+          {summary && (
+            <>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                {Object.entries(summary.totals).map(([k, v]) => (
+                  <div key={k} style={{ minWidth: 110, background: '#f8fafc', borderRadius: 12, padding: 12 }}>
+                    <div style={{ fontWeight: 800, fontSize: 20 }}>{v}</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>{k}</div>
+                  </div>
+                ))}
+                <div style={{ minWidth: 110, background: '#ecfdf5', borderRadius: 12, padding: 12 }}>
+                  <div style={{ fontWeight: 800, fontSize: 20 }}>{summary.percent}%</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>Present %</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => (
+                  <div key={day} style={{
+                    borderRadius: 10, padding: '10px 6px', textAlign: 'center', fontSize: 12,
+                    background: calendarMap[day] === 'Present' ? '#dcfce7'
+                      : calendarMap[day] === 'Leave' ? '#fef3c7'
+                      : calendarMap[day] === 'Absent' ? '#fee2e2'
+                      : '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}>
+                    <div style={{ fontWeight: 700 }}>{day}</div>
+                    <div>{calendarMap[day] || '—'}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'multi' && (
+        <div className="acard">
+          <div className="acard-title" style={{ marginBottom: 12 }}>Multi Attendance</div>
+          <div className="tmg-form-grid">
+            <div className="tmg-field"><label>Date</label><input type="date" value={multiDate} onChange={(e) => setMultiDate(e.target.value)} /></div>
+            <div className="tmg-field">
+              <label>Status</label>
+              <select value={multiStatus} onChange={(e) => setMultiStatus(e.target.value)}>
+                <option>Present</option><option>Leave</option><option>Absent</option>
+              </select>
             </div>
-            {loading ? (
-              <div style={{ padding: 30, textAlign: 'center', color: '#5F7A9E', fontWeight: 700 }}>Loading...</div>
-            ) : fetchError ? (
-              <div style={{ padding: 30, textAlign: 'center', color: '#dc2626', fontWeight: 700 }}>{fetchError}</div>
-            ) : rows.length === 0 ? (
-              <div style={{ padding: 30, textAlign: 'center', color: '#5F7A9E', fontWeight: 800 }}>No Records Found</div>
-            ) : rows.map((r, i) => (
-              <div className="atable-row" key={r._id || i} style={{ gridTemplateColumns: GRID }}>
-                <span className="atable-cell">{r.date ? new Date(r.date).toLocaleDateString() : ''}</span>
-                <span className="atable-cell-strong">{r.roll || ''}</span>
-                <span className="atable-cell-strong">{r.trainerName || r.name || ''}</span>
-                <span className="atable-cell">{r.remarks || ''}</span>
-                <span className={`badge ${STATUS_BADGE[r.status]}`}>{r.status}</span>
-              </div>
-            ))}
+            <div className="tmg-field tmg-field-span">
+              <label>Roll numbers (comma-separated)</label>
+              <textarea
+                rows={4}
+                value={multiRolls}
+                onChange={(e) => setMultiRolls(e.target.value)}
+                placeholder="TS-001, TS-002, TS-003"
+                style={{ border: '1px solid #d1d5db', borderRadius: 12, padding: 12 }}
+              />
+            </div>
           </div>
+          <button className="btn-primary" style={{ marginTop: 12 }} onClick={runMulti}>Mark All</button>
+
+          {multiResult && (
+            <div style={{ marginTop: 16, fontSize: 13 }}>
+              <div>Marked: {multiResult.marked.length}</div>
+              <div>Skipped (already marked): {multiResult.skipped.length}</div>
+              <div>Not found: {multiResult.notFound.join(', ') || '—'}</div>
+              <div>Unpaid warnings: {multiResult.unpaidWarnings.map((u) => u.roll).join(', ') || '—'}</div>
+            </div>
+          )}
         </div>
-      </div>
-    </>
-  );
-}
-
-/* ── Multi tab ────────────────────────────────────────────────────────── */
-function MultiAttendance({ records, onRefresh }) {
-  const directory = useMemo(() => {
-    const seen = new Set();
-    return (records || []).filter((r) => {
-      const key = r.roll || r.trainerName || r.name;
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [records]);
-
-  const [marks, setMarks] = useState(() =>
-    Object.fromEntries(directory.map((d) => [(d.roll || d._id), 'Present'])),
-  );
-  const [saved, setSaved] = useState(false);
-
-  const setMark = (id, val) => { setMarks((m) => ({ ...m, [id]: val })); setSaved(false); };
-  const setAll = (val) => { setMarks(Object.fromEntries(directory.map((d) => [(d.roll || d._id), val]))); setSaved(false); };
-
-  const summary = Object.values(marks).reduce((a, v) => { a[v] += 1; return a; }, { Present: 0, Leave: 0, Absent: 0 });
-  const GRID = '110px 1.6fr 1.4fr 220px';
-
-  return (
-    <div className="acard" style={{ padding: 0 }}>
-      <div className="acard-head" style={{ padding: '16px 16px 12px', marginBottom: 0, gap: 10 }}>
-        <div>
-          <span className="acard-title">Multi Attendance</span>
-          <div style={{ fontSize: 12, color: '#7286a3', marginTop: 2 }}>Mark all records in one pass, then save.</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn-ghost" style={{ padding: '7px 11px' }} onClick={() => setAll('Present')}>All Present</button>
-          <button className="btn-ghost" style={{ padding: '7px 11px' }} onClick={() => setAll('Absent')}>All Absent</button>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, padding: '0 16px 12px' }}>
-        <span className="badge badge-green">{summary.Present} Present</span>
-        <span className="badge badge-amber">{summary.Leave} Leave</span>
-        <span className="badge badge-grey">{summary.Absent} Absent</span>
-      </div>
-
-      <div className="admin-scroll-x">
-        <div className="atable" style={{ minWidth: 720 }}>
-          <div className="atable-head" style={{ gridTemplateColumns: GRID }}>
-            <span>Roll No</span><span>Student</span><span>Course</span><span>Attendance</span>
-          </div>
-          {directory.length === 0 ? (
-            <div style={{ padding: 30, textAlign: 'center', color: '#5F7A9E', fontWeight: 800 }}>No records available</div>
-          ) : directory.map((d, i) => {
-            const id = d.roll || d._id;
-            return (
-              <div className="atable-row" key={id} style={{ gridTemplateColumns: GRID }}>
-                <span className="atable-cell-strong">{d.roll || ''}</span>
-                <div className="atable-name">
-                  <div className="atable-av" style={{ background: AV[i % AV.length] }}>{initials(d.trainerName || d.name || '')}</div>
-                  <div><div className="atable-cell-strong">{d.trainerName || d.name}</div></div>
-                </div>
-                <span className="atable-cell">{d.remarks || ''}</span>
-                <div className="seg">
-                  {['Present', 'Leave', 'Absent'].map((s) => (
-                    <button
-                      key={s}
-                      className={`${marks[id] === s ? `on ${s.toLowerCase()}` : ''}`}
-                      onClick={() => setMark(id, s)}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 16px', borderTop: '1px solid #f0f4fa' }}>
-        <div style={{ fontSize: 12.5, color: '#5F7A9E', fontWeight: 700 }}>
-          {saved ? '✓ Attendance saved.' : `${directory.length} unique records`}
-        </div>
-        <button className="btn-primary" onClick={() => { setSaved(true); onRefresh(); }}><Save size={15} /> Save Attendance</button>
-      </div>
+      )}
     </div>
   );
 }
-
