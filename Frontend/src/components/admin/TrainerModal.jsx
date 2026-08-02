@@ -23,6 +23,14 @@ function TrainerModal({
       experience: '',
       joiningDate: '',
       salary: '',
+      hourlyRate: '',
+      urduName: '',
+      bio: '',
+      facebook: '',
+      linkedin: '',
+      youtube: '',
+      twitter: '',
+      coursesTaught: '',
       address: '',
       status: 'Active',
       profilePictureUrl: null,
@@ -244,6 +252,43 @@ function TrainerModal({
                 <label>Salary *</label>
                 <input type="number" value={form.salary} onChange={handleChange('salary')} />
                 {errors.salary && <div className="tmg-error">{errors.salary}</div>}
+              </div>
+
+              <div className="tmg-field">
+                <label>Hourly Rate</label>
+                <input type="number" value={form.hourlyRate || ''} onChange={handleChange('hourlyRate')} placeholder="e.g. 1500" />
+              </div>
+
+              <div className="tmg-field">
+                <label>Urdu Name</label>
+                <input value={form.urduName || ''} onChange={handleChange('urduName')} placeholder="اردو نام" dir="rtl" />
+              </div>
+
+              <div className="tmg-field tmg-field-span">
+                <label>Bio</label>
+                <input value={form.bio || ''} onChange={handleChange('bio')} placeholder="Short trainer bio" />
+              </div>
+
+              <div className="tmg-field tmg-field-span">
+                <label>Courses Taught</label>
+                <input value={form.coursesTaught || ''} onChange={handleChange('coursesTaught')} placeholder="AI, Python, Web Development" />
+              </div>
+
+              <div className="tmg-field">
+                <label>Facebook</label>
+                <input value={form.facebook || ''} onChange={handleChange('facebook')} placeholder="https://facebook.com/…" />
+              </div>
+              <div className="tmg-field">
+                <label>LinkedIn</label>
+                <input value={form.linkedin || ''} onChange={handleChange('linkedin')} placeholder="https://linkedin.com/in/…" />
+              </div>
+              <div className="tmg-field">
+                <label>YouTube</label>
+                <input value={form.youtube || ''} onChange={handleChange('youtube')} />
+              </div>
+              <div className="tmg-field">
+                <label>Twitter / X</label>
+                <input value={form.twitter || ''} onChange={handleChange('twitter')} />
               </div>
 
               <div className="tmg-field tmg-field-span">

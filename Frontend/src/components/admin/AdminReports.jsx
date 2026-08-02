@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Download,
   FileText,
@@ -11,65 +11,7 @@ import {
   Receipt,
   TrendingUp,
 } from 'lucide-react';
-
-// Mock data (UI only). Connect to API later.
-const MOCK_REPORTS = [
-  {
-    id: 'rpt-001',
-    type: 'Enrollment Summary',
-    period: 'May 2026',
-    campus: 'Sukkur',
-    total: 1345,
-    approved: 1290,
-    pending: 55,
-    createdAt: '2026-06-01',
-    status: 'Ready',
-  },
-  {
-    id: 'rpt-002',
-    type: 'Attendance Report',
-    period: 'May 2026',
-    campus: 'Karachi',
-    total: 986,
-    approved: 910,
-    pending: 76,
-    createdAt: '2026-06-03',
-    status: 'Processing',
-  },
-  {
-    id: 'rpt-003',
-    type: 'Payment Status',
-    period: 'May 2026',
-    campus: 'Lahore',
-    total: 754,
-    approved: 690,
-    pending: 64,
-    createdAt: '2026-06-05',
-    status: 'Ready',
-  },
-  {
-    id: 'rpt-004',
-    type: 'Trainer Performance',
-    period: 'May 2026',
-    campus: 'Islamabad',
-    total: 632,
-    approved: 612,
-    pending: 20,
-    createdAt: '2026-06-06',
-    status: 'Ready',
-  },
-  {
-    id: 'rpt-005',
-    type: 'Assignment Completion',
-    period: 'Week 4',
-    campus: 'Multan',
-    total: 521,
-    approved: 430,
-    pending: 91,
-    createdAt: '2026-06-07',
-    status: 'Ready',
-  },
-];
+import { getReports } from '../../services/adminService';
 
 function formatStatusBadge(status) {
   if (status === 'Ready') return { cls: 'badge-green', label: 'Ready' };
@@ -86,35 +28,66 @@ export default function AdminReports() {
   const [query, setQuery] = useState('');
   const [campus, setCampus] = useState('All Campuses');
   const [status, setStatus] = useState('All Statuses');
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    getReports({ campus: campus === 'All Campuses' ? '' : campus })
+      .then((rows) => { if (alive) setReports(rows || []); })
+      .catch(() => { if (alive) setReports([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [campus]);
 
   const campuses = useMemo(() => {
-    const s = new Set(MOCK_REPORTS.map((r) => r.campus));
-    return ['All Campuses', ...Array.from(s)];
-  }, []);
+    const s = new Set(reports.map((r) => r.campus).filter(Boolean));
+    return ['All Campuses', 'Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan', ...Array.from(s)];
+  }, [reports]);
 
   const statuses = ['All Statuses', 'Ready', 'Processing'];
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return MOCK_REPORTS.filter((r) => {
+    return reports.filter((r) => {
       const matchesQuery =
         !q ||
         r.type.toLowerCase().includes(q) ||
         r.period.toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q) ||
-        r.campus.toLowerCase().includes(q);
-      const matchesCampus = campus === 'All Campuses' ? true : r.campus === campus;
+        String(r.id).toLowerCase().includes(q) ||
+        String(r.campus).toLowerCase().includes(q);
+      const matchesCampus = campus === 'All Campuses' ? true : r.campus === campus || r.campus === 'All';
       const matchesStatus = status === 'All Statuses' ? true : r.status === status;
       return matchesQuery && matchesCampus && matchesStatus;
     });
-  }, [query, campus, status]);
+  }, [reports, query, campus, status]);
 
   const totals = useMemo(() => {
-    const total = filtered.reduce((a, r) => a + r.total, 0);
-    const approved = filtered.reduce((a, r) => a + r.approved, 0);
-    const pending = filtered.reduce((a, r) => a + r.pending, 0);
+    const total = filtered.reduce((a, r) => a + (r.total || 0), 0);
+    const approved = filtered.reduce((a, r) => a + (r.approved || 0), 0);
+    const pending = filtered.reduce((a, r) => a + (r.pending || 0), 0);
     return { total, approved, pending };
   }, [filtered]);
+
+  const downloadReport = (r) => {
+    const lines = [
+      `TITAN SMS REPORT — ${r.type}`,
+      `Period: ${r.period}`,
+      `Campus: ${r.campus}`,
+      `Total: ${r.total}`,
+      `Approved: ${r.approved}`,
+      `Pending: ${r.pending}`,
+      `Generated: ${r.createdAt}`,
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${r.id || 'report'}-${r.createdAt}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="areport-page">
@@ -260,7 +233,7 @@ export default function AdminReports() {
           <div>
             <span className="acard-title">Reports Library</span>
             <div style={{ fontSize: 12, color: '#7286a3', marginTop: 2 }}>
-              Click “View” to preview a report (mock), or “Download” to export.
+              Live reports from database. Download exports a text summary.
             </div>
           </div>
           <div className="acard-tools">
@@ -283,7 +256,11 @@ export default function AdminReports() {
               <span>Action</span>
             </div>
 
-            {filtered.map((r) => (
+            {loading && (
+              <div style={{ padding: 22, color: '#7286a3', fontWeight: 700 }}>Loading reports…</div>
+            )}
+
+            {!loading && filtered.map((r) => (
               <div
                 className="atable-row areport-row"
                 key={r.id}
@@ -298,25 +275,25 @@ export default function AdminReports() {
                 </div>
                 <span className="atable-cell">{r.campus}</span>
                 <span className="atable-cell">{r.period}</span>
-                <span className="atable-cell">{r.total.toLocaleString()}</span>
+                <span className="atable-cell">{(r.total || 0).toLocaleString()}</span>
                 <span className="atable-cell" style={{ color: '#16a34a', fontWeight: 700 }}>
-                  {r.approved.toLocaleString()}
+                  {(r.approved || 0).toLocaleString()}
                 </span>
                 <div>
                   <Badge status={r.status} />
                 </div>
                 <div className="atable-actions">
-                  <button title="View (mock)" aria-label="View">
+                  <button title="View" aria-label="View" onClick={() => window.alert(`${r.type}\nTotal ${r.total}\nApproved ${r.approved}\nPending ${r.pending}`)}>
                     <Eye size={16} />
                   </button>
-                  <button title="Download (mock)" aria-label="Download">
+                  <button title="Download" aria-label="Download" onClick={() => downloadReport(r)}>
                     <Download size={16} />
                   </button>
                 </div>
               </div>
             ))}
 
-            {filtered.length === 0 && (
+            {!loading && filtered.length === 0 && (
               <div style={{ padding: 22, color: '#7286a3', fontWeight: 700 }}>
                 No reports match your filters.
               </div>

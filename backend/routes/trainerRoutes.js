@@ -2,6 +2,7 @@ const express = require('express');
 const Trainer = require('../models/Trainer');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
+const { applyCampusScope } = require('../utils/campusScope');
 
 const router = express.Router();
 
@@ -17,7 +18,8 @@ async function generateEmployeeId() {
 // @route   GET /api/trainers
 router.get('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
-    const trainers = await Trainer.find().sort({ createdAt: -1 });
+    const filter = applyCampusScope(req, {});
+    const trainers = await Trainer.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, count: trainers.length, data: trainers });
   } catch (error) {
     next(error);
@@ -81,13 +83,12 @@ router.post('/', protect, authorize('superadmin', 'subadmin'), async (req, res, 
 
     let trainer;
     try {
-      trainer = await Trainer.create({
-        ...req.body,
-        email: normalizedEmail,
-        cnic: normalizedCnic,
-        employeeId,
-        user: user._id,
-      });
+      const payload = { ...req.body, email: normalizedEmail, cnic: normalizedCnic, employeeId, user: user._id };
+      if (typeof payload.coursesTaught === 'string') {
+        payload.coursesTaught = payload.coursesTaught.split(',').map((c) => c.trim()).filter(Boolean);
+      }
+      if (payload.hourlyRate !== undefined) payload.hourlyRate = Number(payload.hourlyRate) || 0;
+      trainer = await Trainer.create(payload);
     } catch (error) {
       await User.findByIdAndDelete(user._id);
       throw error;
@@ -109,6 +110,12 @@ router.put('/:id', protect, authorize('superadmin', 'subadmin'), async (req, res
     const updateData = { ...req.body };
     if (updateData.email) {
       updateData.email = String(updateData.email).trim().toLowerCase();
+    }
+    if (typeof updateData.coursesTaught === 'string') {
+      updateData.coursesTaught = updateData.coursesTaught.split(',').map((c) => c.trim()).filter(Boolean);
+    }
+    if (updateData.hourlyRate !== undefined) {
+      updateData.hourlyRate = Number(updateData.hourlyRate) || 0;
     }
     if (updateData.cnic !== undefined) {
       updateData.cnic = String(updateData.cnic).trim();

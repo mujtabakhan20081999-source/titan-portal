@@ -4,6 +4,7 @@ import TrainerTable from '../components/admin/TrainerTable';
 import TrainerModal from '../components/admin/TrainerModal';
 import TrainerDetails from '../components/admin/TrainerDetails';
 import DeleteModal from '../components/admin/DeleteModal';
+import AdminTrainerAttendance from '../components/admin/AdminTrainerAttendance';
 import { deleteTrainer, getCampuses, listTrainers, createTrainer, updateTrainer } from '../services/trainerService';
 
 function normalizeTrainerForForm(t) {
@@ -19,6 +20,14 @@ function normalizeTrainerForForm(t) {
     experience: t.experience ?? '',
     joiningDate: t.joiningDate ? String(t.joiningDate).slice(0, 10) : '',
     salary: t.salary ?? '',
+    hourlyRate: t.hourlyRate ?? '',
+    urduName: t.urduName || '',
+    bio: t.bio || '',
+    facebook: t.socialLinks?.facebook || '',
+    linkedin: t.socialLinks?.linkedin || '',
+    youtube: t.socialLinks?.youtube || '',
+    twitter: t.socialLinks?.twitter || '',
+    coursesTaught: Array.isArray(t.coursesTaught) ? t.coursesTaught.join(', ') : (t.coursesTaught || ''),
     address: t.address || '',
     status: t.status || 'Active',
     profilePictureUrl: t.profilePictureUrl ?? null,
@@ -87,6 +96,14 @@ function Trainers() {
       experience: '',
       joiningDate: '',
       salary: '',
+      hourlyRate: '',
+      urduName: '',
+      bio: '',
+      facebook: '',
+      linkedin: '',
+      youtube: '',
+      twitter: '',
+      coursesTaught: '',
       address: '',
       status: 'Active',
       profilePictureUrl: null,
@@ -122,6 +139,16 @@ function Trainers() {
         experience: Number(form.experience),
         joiningDate: form.joiningDate,
         salary: Number(form.salary),
+        hourlyRate: Number(form.hourlyRate) || 0,
+        urduName: form.urduName || '',
+        bio: form.bio || '',
+        socialLinks: {
+          facebook: form.facebook || '',
+          linkedin: form.linkedin || '',
+          youtube: form.youtube || '',
+          twitter: form.twitter || '',
+        },
+        coursesTaught: form.coursesTaught || '',
         address: form.address,
         status: form.status,
         profilePictureUrl: form.profilePictureUrl || null,
@@ -206,6 +233,8 @@ function Trainers() {
         onEdit={openEdit}
         onDelete={openDelete}
       />
+
+      <AdminTrainerAttendance trainers={trainers} />
 
       <TrainerModal
         open={modalOpen}

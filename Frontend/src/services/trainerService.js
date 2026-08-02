@@ -11,8 +11,8 @@ export function getCampuses() {
   ];
 }
 
-export async function listTrainers() {
-  const { data } = await api.get('/trainers');
+export async function listTrainers(params = {}) {
+  const { data } = await api.get('/trainers', { params });
   return data.data;
 }
 

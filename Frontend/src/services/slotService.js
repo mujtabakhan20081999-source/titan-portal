@@ -1,7 +1,7 @@
 import api from './api';
 
-export async function listSlots() {
-  const { data } = await api.get('/slots');
+export async function listSlots(params = {}) {
+  const { data } = await api.get('/slots', { params });
   return data.data;
 }
 

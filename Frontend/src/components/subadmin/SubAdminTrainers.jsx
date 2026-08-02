@@ -1,63 +1,117 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   GraduationCap, ScanLine, Search, LogIn, LogOut, CheckCircle2, XCircle, ClipboardList, Lock,
 } from 'lucide-react';
 
 import { can, AV_COLORS } from './subAdminData';
+import {
+  scanTrainerAttendance,
+  listTrainerAttendance,
+  listTrainerCorrections,
+  reviewTrainerCorrection,
+} from '../../services/adminService';
 
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
 const GRID = '1.5fr 1.6fr 120px 1.6fr 110px';
 
-const CITY_CODE = { Sukkur: 'SUK', Karachi: 'KHI', Lahore: 'LHE', Islamabad: 'ISB', Multan: 'MUX' };
-const cityCode = (c) => CITY_CODE[c] || 'GEN';
-
-// Generate initials avatar
-function getAv(name) {
-  return AV_COLORS[name.length % AV_COLORS.length];
+function initials(name = '') {
+  return name.split(' ').slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 }
 
 function SubAdminTrainers({ city, perms, trainers }) {
   const [tab, setTab] = useState('Trainers');
-  const [requests, setRequests] = useState([
-    { id: `REQ-${cityCode(city)}-01`, trainer: 'Ali Raza',    empId: `EMP-${cityCode(city)}-01`, date: '12 Jul 2026', change: 'Absent → Present', reason: 'Was on campus but scanner was offline.', status: 'Pending' },
-    { id: `REQ-${cityCode(city)}-02`, trainer: 'Sana Khan',   empId: `EMP-${cityCode(city)}-02`, date: '10 Jul 2026', change: 'Missing check-out', reason: 'Forgot to scan while leaving early class.', status: 'Pending' },
-    { id: `REQ-${cityCode(city)}-03`, trainer: 'Usman Ali',   empId: `EMP-${cityCode(city)}-03`, date: '08 Jul 2026', change: 'Leave → Present',   reason: 'Leave was cancelled, took the class.', status: 'Approved' },
-  ]);
+  const [requests, setRequests] = useState([]);
+  const [log, setLog] = useState([]);
   const [toast, setToast] = useState('');
   const say = (m) => { setToast(m); setTimeout(() => setToast(''), 2400); };
 
   const canUpdate = can(perms, 'Trainers', 'update');
   const canWrite = can(perms, 'Trainers', 'write');
 
-  /* Trainer attendance (scan employee ID) */
   const [empIdInput, setEmpIdInput] = useState('');
   const [foundTrainer, setFoundTrainer] = useState(null);
   const [attErr, setAttErr] = useState('');
-  const [log, setLog] = useState([
-    { empId: '—', name: 'Ali Raza', action: 'Check-in', time: '08:52 AM', date: '18 Jul 2026' },
-    { empId: '—', name: 'Sana Khan', action: 'Check-in', time: '01:45 PM', date: '18 Jul 2026' },
-  ]);
+  const [busy, setBusy] = useState(false);
+
+  const loadSideData = async () => {
+    try {
+      const [att, corr] = await Promise.all([
+        listTrainerAttendance({ campus: city, date: new Date().toISOString().slice(0, 10) }).catch(() => []),
+        listTrainerCorrections({ campus: city }).catch(() => []),
+      ]);
+      setLog((att || []).map((a) => ({
+        empId: a.employeeId,
+        name: a.trainerName,
+        action: a.checkOut ? 'Check-out' : 'Check-in',
+        time: a.checkOut || a.checkIn,
+        date: a.date,
+      })));
+      setRequests((corr || []).map((r) => ({
+        id: r._id,
+        trainer: r.trainerName,
+        empId: r.employeeId,
+        date: r.date,
+        change: `${r.currentCheckIn || '—'} → ${r.proposedCheckIn || r.proposedStatus || 'Present'}`,
+        reason: r.reason,
+        status: r.status,
+      })));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => { loadSideData(); }, [city]);
 
   const findTrainer = () => {
     const q = empIdInput.trim().toUpperCase();
-    const t = trainers.find((x) => x.empId.toUpperCase() === q);
-    if (!t) { setFoundTrainer(null); setAttErr(`No trainer with Employee ID "${empIdInput.trim()}" at ${city} Campus.`); return; }
-    setAttErr(''); setFoundTrainer(t);
+    const t = trainers.find((x) => String(x.employeeId || '').toUpperCase() === q);
+    if (!t) {
+      setFoundTrainer(null);
+      setAttErr(`No trainer with Employee ID "${empIdInput.trim()}" at ${city} Campus.`);
+      return;
+    }
+    setAttErr('');
+    setFoundTrainer(t);
   };
 
-  const record = (action) => {
+  const record = async (action) => {
     if (!foundTrainer) return;
-    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    setLog((p) => [{ empId: foundTrainer.empId, name: foundTrainer.name, action, time, date: '18 Jul 2026' }, ...p]);
-    say(`${action} recorded for ${foundTrainer.name}.`);
-    setFoundTrainer(null); setEmpIdInput('');
+    setBusy(true);
+    try {
+      const res = await scanTrainerAttendance({
+        employeeId: foundTrainer.employeeId,
+        action: action === 'Check-out' ? 'check-out' : 'check-in',
+        campus: city,
+      });
+      const row = res.data;
+      setLog((p) => [{
+        empId: foundTrainer.employeeId,
+        name: foundTrainer.fullName,
+        action,
+        time: action === 'Check-out' ? row.checkOut : row.checkIn,
+        date: row.date,
+      }, ...p]);
+      say(`${action} recorded for ${foundTrainer.fullName}.`);
+      setFoundTrainer(null);
+      setEmpIdInput('');
+    } catch (err) {
+      say(err?.response?.data?.message || `${action} failed.`);
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const decide = (id, status) => {
-    setRequests((p) => p.map((r) => (r.id === id ? { ...r, status } : r)));
-    say(`Request ${id} ${status.toLowerCase()}.`);
+  const decide = async (id, status) => {
+    try {
+      await reviewTrainerCorrection(id, { status });
+      setRequests((p) => p.map((r) => (r.id === id ? { ...r, status } : r)));
+      say(`Request ${status.toLowerCase()}.`);
+      await loadSideData();
+    } catch (err) {
+      say(err?.response?.data?.message || 'Review failed.');
+    }
   };
 
   const pending = requests.filter((r) => r.status === 'Pending').length;
@@ -102,22 +156,19 @@ function SubAdminTrainers({ city, perms, trainers }) {
               ) : trainers.map((t) => {
                 const name = t.fullName || t.name || 'Unknown';
                 const empId = t.employeeId || t.empId || '—';
-                const email = t.email || '—';
-                const phone = t.phoneNumber || t.phone || '—';
-                const status = t.status || 'Active';
                 return (
-                  <div className="atable-row" key={empId} style={{ gridTemplateColumns: GRID }}>
+                  <div className="atable-row" key={t._id || empId} style={{ gridTemplateColumns: GRID }}>
                     <div className="atable-name">
                       <div className="atable-av" style={{ background: AV_COLORS[name.length % AV_COLORS.length] }}>{initials(name)}</div>
                       <div>
                         <div className="atable-cell-strong">{name}</div>
-                        <div className="atable-cell-sub">{t.campus || city}</div>
+                        <div className="atable-cell-sub">{t.urduName || t.campus || city}</div>
                       </div>
                     </div>
-                    <span className="atable-cell">{email}</span>
+                    <span className="atable-cell">{t.email || '—'}</span>
                     <span className="atable-cell-strong">{empId}</span>
-                    <span className="atable-cell">{phone}</span>
-                    <span className={`badge ${status === 'Active' ? 'badge-green' : 'badge-grey'}`}>{status}</span>
+                    <span className="atable-cell">{t.phoneNumber || t.phone || '—'}</span>
+                    <span className={`badge ${t.status === 'Active' ? 'badge-green' : 'badge-grey'}`}>{t.status || 'Active'}</span>
                   </div>
                 );
               })}
@@ -133,7 +184,7 @@ function SubAdminTrainers({ city, perms, trainers }) {
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <label className="admin-search" style={{ flex: '1 1 220px' }}>
                 <ScanLine size={16} color="#5F7A9E" />
-                <input placeholder={`e.g. EMP-${city.slice(0, 3).toUpperCase()}-01…`} value={empIdInput}
+                <input placeholder="e.g. EMP-123456" value={empIdInput}
                   onChange={(e) => setEmpIdInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && findTrainer()} />
               </label>
               <button className="btn-primary" onClick={findTrainer}><Search size={15} /> Check</button>
@@ -143,17 +194,17 @@ function SubAdminTrainers({ city, perms, trainers }) {
             {foundTrainer && (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div className="att-profile">
-                  <div className="att-profile-av" style={{ background: AV_COLORS[(foundTrainer.fullName || foundTrainer.name || '').length % AV_COLORS.length] }}>
-                    {initials(foundTrainer.fullName || foundTrainer.name)}
+                  <div className="att-profile-av" style={{ background: AV_COLORS[(foundTrainer.fullName || '').length % AV_COLORS.length] }}>
+                    {initials(foundTrainer.fullName)}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div className="att-profile-name">{foundTrainer.fullName || foundTrainer.name}</div>
-                    <div className="att-profile-meta">{foundTrainer.employeeId || foundTrainer.empId}</div>
+                    <div className="att-profile-name">{foundTrainer.fullName}</div>
+                    <div className="att-profile-meta">{foundTrainer.employeeId}</div>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <button className="att-btn present" onClick={() => record('Check-in')}><LogIn size={16} /> Check-in</button>
-                  <button className="att-btn absent" onClick={() => record('Check-out')}><LogOut size={16} /> Check-out</button>
+                  <button className="att-btn present" disabled={busy} onClick={() => record('Check-in')}><LogIn size={16} /> Check-in</button>
+                  <button className="att-btn absent" disabled={busy} onClick={() => record('Check-out')}><LogOut size={16} /> Check-out</button>
                 </div>
               </div>
             )}
@@ -161,17 +212,19 @@ function SubAdminTrainers({ city, perms, trainers }) {
 
           <div className="acard">
             <div className="acard-head">
-              <span className="acard-title">Today's Log</span>
-              <span className="badge badge-blue">18 Jul 2026</span>
+              <span className="acard-title">Today&apos;s Log</span>
+              <span className="badge badge-blue">{new Date().toLocaleDateString()}</span>
             </div>
-            {log.map((l, i) => (
+            {log.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7286a3', fontWeight: 700 }}>No scans yet today.</div>
+            ) : log.map((l, i) => (
               <div className="att-recent-row" key={i}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: l.action === 'Check-in' ? '#dcfce7' : '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {l.action === 'Check-in' ? <LogIn size={15} color="#16a34a" /> : <LogOut size={15} color="#dc2626" />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="atable-cell-strong">{l.name}</div>
-                  <div className="atable-cell-sub">{l.action}</div>
+                  <div className="atable-cell-sub">{l.action} · {l.empId}</div>
                 </div>
                 <span className="atable-cell-sub" style={{ fontWeight: 700 }}>{l.time}</span>
               </div>
@@ -187,7 +240,9 @@ function SubAdminTrainers({ city, perms, trainers }) {
             <span className="badge badge-amber">{pending} pending</span>
           </div>
           <div className="ap-list">
-            {requests.map((r) => (
+            {requests.length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#7286a3', fontWeight: 700 }}>No correction requests.</div>
+            ) : requests.map((r) => (
               <div className="ap-item" key={r.id}>
                 <div className="ap-item-ic" style={{ background: '#f4f7ff' }}><ClipboardList size={18} color="#0A3D91" /></div>
                 <div style={{ flex: 1, minWidth: 0 }}>

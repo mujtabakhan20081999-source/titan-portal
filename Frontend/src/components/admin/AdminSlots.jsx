@@ -287,7 +287,26 @@ export default function AdminSlots({ city }) {
                   <div className="atable-cell-sub">{r.time}</div>
                 </div>
                 <span className="atable-cell-strong" style={{ color: r.filled >= r.seats ? '#dc2626' : '#16a34a' }}>{r.filled}/{r.seats}</span>
-                <span className={`badge ${r.status === 'Open' ? 'badge-green' : 'badge-grey'}`}>{r.status}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label className="ap-toggle" title={r.status === 'Open' ? 'Close registration' : 'Open registration'}>
+                    <input
+                      type="checkbox"
+                      checked={r.status === 'Open'}
+                      onChange={async () => {
+                        try {
+                          const next = r.status === 'Open' ? 'Closed' : 'Open';
+                          const updated = await updateSlot(r.slotId, { status: next });
+                          setRows((p) => p.map((x) => (x.slotId === r.slotId ? updated : x)));
+                          setToast(`Registration ${next.toLowerCase()} for ${r.slotId}.`);
+                        } catch (err) {
+                          setToast(err?.response?.data?.message || 'Unable to update slot status.');
+                        }
+                      }}
+                    />
+                    <span className="ap-toggle-slider" />
+                  </label>
+                  <span className={`badge ${r.status === 'Open' ? 'badge-green' : 'badge-grey'}`}>{r.status}</span>
+                </div>
                 <div className="atable-actions">
                   <button title="View" onClick={() => setModal({ mode: 'view', data: r })}><Eye size={16} /></button>
                   <button title="Edit" onClick={() => openEdit(r)}><Pencil size={15} /></button>

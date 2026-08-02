@@ -12,6 +12,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const slotRoutes = require('./routes/slotRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const masterRoutes = require('./routes/masterRoutes');
+const trainerAttendanceRoutes = require('./routes/trainerAttendanceRoutes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/trainers', trainerAttendanceRoutes);
 app.use('/api/trainers', trainerRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/payments', paymentRoutes);

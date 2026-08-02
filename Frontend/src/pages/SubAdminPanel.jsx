@@ -12,6 +12,8 @@ import SubAdminProfile from '../components/subadmin/SubAdminProfile';
 import { SUBADMIN_PERMISSIONS, AV_COLORS } from '../components/subadmin/subAdminData';
 import { listStudents } from '../services/studentService';
 import { listTrainers } from '../services/trainerService';
+import { listSlots } from '../services/slotService';
+import { getMyPermissions } from '../services/adminService';
 
 import '../styles/admin.css';
 import '../styles/admin-pages.css';
@@ -29,34 +31,53 @@ const PAGE_META = {
 
 function SubAdminPanel({ city, onLogout, onChangeCity }) {
   const [active, setActive] = useState('Dashboard');
-  const perms = SUBADMIN_PERMISSIONS;
+  const [perms, setPerms] = useState(SUBADMIN_PERMISSIONS);
 
-  // Real data from backend (or fallback defaults)
   const [students, setStudents] = useState([]);
   const [slots, setSlots] = useState([]);
   const [trainers, setTrainers] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  const campusParams = { city, campus: `${city} Campus`, limit: 200 };
+
+  const reload = async () => {
+    const [studentsData, trainersData, slotsData] = await Promise.all([
+      listStudents(campusParams).catch(() => []),
+      listTrainers({ campus: city }).catch(() => []),
+      listSlots({ campus: city }).catch(() => []),
+    ]);
+
+    setStudents((studentsData || []).map((s, index) => ({
+      ...s,
+      id: s._id || s.id,
+      batch: s.batch || s.meta || '',
+      campus: s.campus || `${s.city || city} Campus`,
+      av: AV_COLORS[index % AV_COLORS.length],
+      joined: s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '',
+      open: undefined,
+    })));
+    setTrainers((trainersData || []).filter((t) => {
+      const c = String(t.campus || '');
+      return c === city || c === `${city} Campus` || c.toLowerCase().includes(String(city).toLowerCase());
+    }));
+    setSlots((slotsData || []).map((s) => ({
+      ...s,
+      id: s.slotId,
+      open: s.status === 'Open',
+    })));
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
-        const [studentsData, trainersData] = await Promise.all([
-          listStudents().catch(() => []),
-          listTrainers().catch(() => []),
-        ]);
-
-        setStudents((studentsData || []).filter((s) => s.city === city).map((s, index) => ({
-          ...s,
-          batch: s.meta || '',
-          campus: `${s.city} Campus`,
-          av: AV_COLORS[index % AV_COLORS.length],
-          joined: s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '',
-        })));
-        setTrainers((trainersData || []).filter((t) => t.campus === city || t.campus === `${city} Campus`));
+        const myPerms = await getMyPermissions().catch(() => null);
+        if (myPerms?.permissions) setPerms(myPerms.permissions);
+        await reload();
       } catch (err) {
         console.error('Failed to load data:', err);
         setStudents([]);
         setTrainers([]);
+        setSlots([]);
       } finally {
         setDataLoaded(true);
       }
@@ -66,11 +87,11 @@ function SubAdminPanel({ city, onLogout, onChangeCity }) {
 
   const PAGES = {
     Dashboard: <SubAdminDashboard city={city} students={students} slots={slots} onGoto={setActive} />,
-    Students: <SubAdminStudents city={city} perms={perms} students={students} setStudents={setStudents} slots={slots} />,
+    Students: <SubAdminStudents city={city} perms={perms} students={students} setStudents={setStudents} slots={slots} onReload={reload} />,
     Attendance: <SubAdminAttendance city={city} perms={perms} students={students} />,
-    Slots: <SubAdminSlots city={city} perms={perms} slots={slots} setSlots={setSlots} />,
+    Slots: <SubAdminSlots city={city} perms={perms} slots={slots} setSlots={setSlots} trainers={trainers} onReload={reload} />,
     Trainers: <SubAdminTrainers city={city} perms={perms} trainers={trainers} />,
-    Updation: <SubAdminUpdation city={city} students={students} setStudents={setStudents} />,
+    Updation: <SubAdminUpdation city={city} students={students} setStudents={setStudents} onReload={reload} />,
     Profile: <SubAdminProfile city={city} onLogout={onLogout} />,
   };
 
@@ -94,7 +115,6 @@ function SubAdminPanel({ city, onLogout, onChangeCity }) {
             </button>
             <button className="admin-bell" aria-label="Notifications" style={{ borderRadius: '50%' }}>
               <Bell size={18} />
-              <span className="admin-bell-dot">3</span>
             </button>
             <div className="sap-av" title="Sub Admin">SA</div>
           </div>

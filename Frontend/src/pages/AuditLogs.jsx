@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Edit, Plus, Search } from 'lucide-react';
+import { getAuditLogs } from '../services/adminService';
 
 import '../styles/admin.css';
 
@@ -108,48 +109,21 @@ export default function AuditLogs() {
       setError('');
 
       try {
-        await new Promise((r) => setTimeout(r, 650));
-
-        const demo = [
-          {
-            id: '1',
-            occurredAt: '2026-05-07T10:20:00.000Z',
-            user: 'Super Admin',
-            userStatus: 'active',
-            action: { type: 'update', label: 'Student Updated' },
-            details: 'WID (14-01) status changed to Enrolled',
-          },
-          {
-            id: '2',
-            occurredAt: '2026-05-07T10:18:00.000Z',
-            user: 'Admin Office',
-            userStatus: 'active',
-            action: { type: 'create', label: 'Slot Created' },
-            details: 'New slot AI - Batch-01 Present',
-          },
-          {
-            id: '3',
-            occurredAt: '2026-05-07T10:15:00.000Z',
-            user: 'Super Admin',
-            userStatus: 'active',
-            action: { type: 'add', label: 'Student Added' },
-            details: 'New student AI-SR-020 added',
-          },
-          {
-            id: '4',
-            occurredAt: '2026-05-07T10:10:00.000Z',
-            user: 'Admin Office',
-            userStatus: 'active',
-            action: { type: 'update', label: 'Trainer Updated' },
-            details: 'Trainer Bilal Ahmed information updated',
-          },
-        ];
-
+        const res = await getAuditLogs({ limit: 100 });
+        const rows = (res.data || []).map((l) => ({
+          id: l.id,
+          occurredAt: l.occurredAt,
+          user: l.user,
+          userStatus: l.userStatus || 'active',
+          action: l.action,
+          details: l.details,
+        }));
         if (!alive) return;
-        setLogs(demo.sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)));
+        setLogs(rows);
       } catch (e) {
         if (!alive) return;
         setError('Failed to load audit logs. Please try again.');
+        setLogs([]);
       } finally {
         if (!alive) return;
         setLoading(false);

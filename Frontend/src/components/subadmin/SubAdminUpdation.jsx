@@ -2,27 +2,43 @@ import { useState } from 'react';
 import { RefreshCw, CheckCircle2 } from 'lucide-react';
 
 import { STUDENT_STATUSES } from './subAdminData';
+import { bulkUpdateStudentStatus } from '../../services/adminService';
 
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
-function SubAdminUpdation({ city, students, setStudents }) {
+function SubAdminUpdation({ city, students, setStudents, onReload }) {
   const [rolls, setRolls] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('Enrolled');
   const [result, setResult] = useState(null);
   const [toast, setToast] = useState('');
+  const [busy, setBusy] = useState(false);
   const say = (m) => { setToast(m); setTimeout(() => setToast(''), 2600); };
 
-  const update = () => {
-    const items = [...new Set(rolls.split(',').map((x) => x.trim().toUpperCase()).filter(Boolean))];
+  const update = async () => {
+    const items = [...new Set(rolls.split(',').map((x) => x.trim()).filter(Boolean))];
     if (items.length === 0) { say('Paste at least one roll number.'); return; }
-    const existing = new Set(students.map((s) => s.roll.toUpperCase()));
-    const updated = items.filter((r) => existing.has(r));
-    const missing = items.filter((r) => !existing.has(r));
-    setStudents((p) => p.map((s) => (updated.includes(s.roll.toUpperCase()) ? { ...s, status } : s)));
-    setResult({ updated, missing, status });
-    say(`${updated.length} student(s) updated to ${status}.`);
+    setBusy(true);
+    try {
+      const data = await bulkUpdateStudentStatus({
+        rolls: items,
+        status,
+        message,
+        campus: `${city} Campus`,
+        city,
+      });
+      const updated = data.updated || [];
+      const missing = data.missing || [];
+      setStudents((p) => p.map((s) => (updated.map((r) => r.toUpperCase()).includes(String(s.roll).toUpperCase()) ? { ...s, status } : s)));
+      setResult({ updated, missing, status });
+      say(`${updated.length} student(s) updated to ${status}.`);
+      if (onReload) onReload();
+    } catch (err) {
+      say(err?.response?.data?.message || 'Bulk update failed.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -52,8 +68,8 @@ function SubAdminUpdation({ city, students, setStudents }) {
                 {STUDENT_STATUSES.map((s) => <option key={s}>{s}</option>)}
               </select>
             </div>
-            <button className="btn-primary" style={{ justifyContent: 'center', padding: '12px 14px' }} onClick={update}>
-              <RefreshCw size={16} /> Update All
+            <button className="btn-primary" style={{ justifyContent: 'center', padding: '12px 14px' }} disabled={busy} onClick={update}>
+              <RefreshCw size={16} /> {busy ? 'Updating…' : 'Update All'}
             </button>
           </div>
         </div>

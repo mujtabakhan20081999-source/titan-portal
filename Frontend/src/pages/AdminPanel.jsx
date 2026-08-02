@@ -40,6 +40,7 @@ import { listTrainers } from '../services/trainerService';
 import { listSlots } from '../services/slotService';
 import { listAttendance } from '../services/attendanceService';
 import { listPayments } from '../services/paymentService';
+import { getDashboard } from '../services/adminService';
 
 import '../styles/admin.css';
 
@@ -300,19 +301,26 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [paymentRecords, setPaymentRecords] = useState([]);
   const [permissions, setPermissions] = useState(admin?.permissions || {});
+  const [campusSort, setCampusSort] = useState('desc');
+  const [courseSort, setCourseSort] = useState('desc');
+  const [campusPage, setCampusPage] = useState(1);
+  const [coursePage, setCoursePage] = useState(1);
+  const [regOpenCount, setRegOpenCount] = useState(0);
+  const chartPageSize = 5;
 
   useEffect(() => {
     setPermissions(admin?.permissions || {});
   }, [admin]);
 
   useEffect(() => {
-    Promise.all([listStudents(), listTrainers(), listSlots(), listAttendance(), listPayments()])
-      .then(([studentRows, trainerRows, slotRows, attendanceRows, paymentRows]) => {
+    Promise.all([listStudents(), listTrainers(), listSlots(), listAttendance(), listPayments(), getDashboard().catch(() => null)])
+      .then(([studentRows, trainerRows, slotRows, attendanceRows, paymentRows, dash]) => {
         setDatabaseStudents(studentRows || []);
         setDatabaseTrainers(trainerRows || []);
         setDatabaseSlots(slotRows || []);
         setAttendanceRecords(attendanceRows || []);
         setPaymentRecords(paymentRows || []);
+        setRegOpenCount(dash?.stats?.regOpen ?? (slotRows || []).filter((s) => s.status === 'Open').length);
       })
       .catch(() => {
         setDatabaseStudents([]);
@@ -320,6 +328,7 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
         setDatabaseSlots([]);
         setAttendanceRecords([]);
         setPaymentRecords([]);
+        setRegOpenCount(0);
       });
   }, []);
 
@@ -346,19 +355,29 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
       return { ...s, value: (values[s.key] ?? 0).toLocaleString(), sub: 'Live database' };
     });
 
-  const donutCampuses = Object.entries(databaseStudents.reduce((counts, student) => {
-    const campus = student.city || 'Unassigned';
+  const donutCampusesAll = Object.entries(databaseStudents.reduce((counts, student) => {
+    const campus = student.city || student.campus || 'Unassigned';
     counts[campus] = (counts[campus] || 0) + 1;
     return counts;
-  }, {})).map(([label, value], index) => ({ label, value, color: ['#0A3D91', '#2563eb', '#16a34a', '#d97706', '#7c3aed'][index % 5] }));
+  }, {}))
+    .map(([label, value], index) => ({ label, value, color: ['#0A3D91', '#2563eb', '#16a34a', '#d97706', '#7c3aed'][index % 5] }))
+    .sort((a, b) => (campusSort === 'asc' ? a.value - b.value : b.value - a.value));
 
-  const totalStudents = donutCampuses.reduce((s, c) => s + c.value, 0);
-  const dashboardCourses = Object.entries(databaseStudents.reduce((counts, student) => {
+  const campusTotalPages = Math.max(1, Math.ceil(donutCampusesAll.length / chartPageSize));
+  const donutCampuses = donutCampusesAll.slice((campusPage - 1) * chartPageSize, campusPage * chartPageSize);
+  const totalStudents = donutCampusesAll.reduce((s, c) => s + c.value, 0);
+
+  const dashboardCoursesAll = Object.entries(databaseStudents.reduce((counts, student) => {
     const course = student.course || 'Unassigned';
     counts[course] = (counts[course] || 0) + 1;
     return counts;
-  }, {})).map(([label, value]) => ({ label, value }));
-  const maxCourse = Math.max(1, ...dashboardCourses.map((c) => c.value));
+  }, {}))
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => (courseSort === 'asc' ? a.value - b.value : b.value - a.value));
+
+  const courseTotalPages = Math.max(1, Math.ceil(dashboardCoursesAll.length / chartPageSize));
+  const dashboardCourses = dashboardCoursesAll.slice((coursePage - 1) * chartPageSize, coursePage * chartPageSize);
+  const maxCourse = Math.max(1, ...dashboardCourses.map((c) => c.value), 1);
 
   const attendanceCounts = attendanceRecords.reduce((counts, record) => {
     const status = record.status || 'Unknown';
@@ -440,7 +459,7 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
               <Megaphone size={22} color="#4a2f00" />
             </div>
             <div>
-              <div className="astat-val">23</div>
+              <div className="astat-val">{regOpenCount.toLocaleString()}</div>
               <div className="astat-label">Registration Open</div>
               <div className="astat-sub">Slots Open</div>
             </div>
@@ -451,7 +470,13 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
           <div className="acard">
             <div className="acard-head">
               <span className="acard-title">Students Per Campus</span>
-              <span style={{ fontSize: 12, color: '#7286a3' }}>Sort: High to Low</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select className="afilter-select" style={{ width: 'auto', minWidth: 120 }} value={campusSort} onChange={(e) => { setCampusSort(e.target.value); setCampusPage(1); }}>
+                  <option value="desc">High → Low</option>
+                  <option value="asc">Low → High</option>
+                </select>
+                <span style={{ fontSize: 12, color: '#7286a3' }}>Page {Math.min(campusPage, campusTotalPages)}/{campusTotalPages}</span>
+              </div>
             </div>
             <div className="donut-row">
               <DonutChart data={donutCampuses} total={totalStudents} />
@@ -465,12 +490,22 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
                 ))}
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+              <button className="btn-ghost" type="button" disabled={campusPage <= 1} onClick={() => setCampusPage((p) => p - 1)}>Prev</button>
+              <button className="btn-ghost" type="button" disabled={campusPage >= campusTotalPages} onClick={() => setCampusPage((p) => p + 1)}>Next</button>
+            </div>
           </div>
 
           <div className="acard">
             <div className="acard-head">
               <span className="acard-title">Students Per Course</span>
-              <span style={{ fontSize: 12, color: '#7286a3' }}>Sort: High to Low</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select className="afilter-select" style={{ width: 'auto', minWidth: 120 }} value={courseSort} onChange={(e) => { setCourseSort(e.target.value); setCoursePage(1); }}>
+                  <option value="desc">High → Low</option>
+                  <option value="asc">Low → High</option>
+                </select>
+                <span style={{ fontSize: 12, color: '#7286a3' }}>Page {Math.min(coursePage, courseTotalPages)}/{courseTotalPages}</span>
+              </div>
             </div>
             <div className="barchart">
               {dashboardCourses.map((c) => (
@@ -480,6 +515,10 @@ function AdminPanel({ admin, onLogout, onChangeCity }) {
                   <span className="bar-label">{c.label}</span>
                 </div>
               ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
+              <button className="btn-ghost" type="button" disabled={coursePage <= 1} onClick={() => setCoursePage((p) => p - 1)}>Prev</button>
+              <button className="btn-ghost" type="button" disabled={coursePage >= courseTotalPages} onClick={() => setCoursePage((p) => p + 1)}>Next</button>
             </div>
           </div>
         </div>

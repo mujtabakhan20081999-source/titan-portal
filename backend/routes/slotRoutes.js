@@ -2,6 +2,7 @@ const express = require('express');
 const Slot = require('../models/Slot');
 const Trainer = require('../models/Trainer');
 const { protect, authorize } = require('../middleware/auth');
+const { applyCampusScope } = require('../utils/campusScope');
 
 const router = express.Router();
 
@@ -37,7 +38,10 @@ async function resolveTrainerAssignment(trainerName, trainerId) {
 
 router.get('/', protect, authorize('superadmin', 'subadmin'), async (req, res, next) => {
   try {
-    const slots = await Slot.find().sort({ createdAt: -1 });
+    const filter = applyCampusScope(req, {});
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.campus) filter.campus = new RegExp(req.query.campus, 'i');
+    const slots = await Slot.find(filter).sort({ createdAt: -1 });
     res.json({ success: true, count: slots.length, data: slots });
   } catch (error) {
     next(error);

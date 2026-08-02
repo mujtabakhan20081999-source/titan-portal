@@ -6,6 +6,7 @@ const Enrollment = require('../models/Enrollment');
 const Slot = require('../models/Slot');
 const { protect, authorize } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
+const { studentCampusFilter } = require('../utils/campusScope');
 
 const router = express.Router();
 const adminRoles = authorize('superadmin', 'subadmin');
@@ -94,7 +95,7 @@ router.get('/', protect, adminRoles, requirePermission('Students', 'read'), asyn
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
     const skip = (page - 1) * limit;
-    const filter = buildStudentFilter(req.query);
+    const filter = studentCampusFilter(req, buildStudentFilter(req.query));
 
     const [total, students] = await Promise.all([
       Student.countDocuments(filter),
@@ -316,9 +317,21 @@ router.post('/', protect, adminRoles, requirePermission('Students', 'write'), as
       const slot = body.slotRef
         ? await Slot.findById(body.slotRef)
         : await Slot.findOne({ slotId: body.slot });
-      if (slot && slot.status === 'Closed') {
+      if (!slot) {
+        return res.status(400).json({ success: false, message: 'Selected slot was not found' });
+      }
+      if (slot.status === 'Closed') {
         return res.status(400).json({ success: false, message: 'This slot is closed for registration' });
       }
+      if (Number(slot.filled) >= Number(slot.seats)) {
+        slot.status = 'Closed';
+        await slot.save();
+        return res.status(400).json({ success: false, message: 'This slot is full and closed for registration' });
+      }
+      body.slot = slot.slotId;
+      body.slotRef = slot._id;
+      body.course = body.course || slot.course;
+      body.campus = body.campus || slot.campus;
     }
 
     const userPayload = { fullName: name, role: 'student', campus: body.campus || city || '' };
@@ -352,6 +365,19 @@ router.post('/', protect, adminRoles, requirePermission('Students', 'write'), as
     }
 
     const voucher = await createRegistrationVoucher(student);
+
+    if (student.slotRef || student.slot) {
+      const slotDoc = student.slotRef
+        ? await Slot.findById(student.slotRef)
+        : await Slot.findOne({ slotId: student.slot });
+      if (slotDoc) {
+        slotDoc.filled = Number(slotDoc.filled || 0) + 1;
+        if (slotDoc.filled >= slotDoc.seats) {
+          slotDoc.status = 'Closed';
+        }
+        await slotDoc.save();
+      }
+    }
 
     if (student.slot || student.slotRef || student.course) {
       await Enrollment.create({

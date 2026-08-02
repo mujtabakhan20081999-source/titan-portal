@@ -40,6 +40,14 @@ function TrainerDetails({ open, trainer, onClose }) {
                 <div><b>Qualification:</b> {trainer.qualification}</div>
                 <div><b>Experience:</b> {trainer.experience} years</div>
                 <div><b>Salary:</b> {trainer.salary}</div>
+                <div><b>Hourly Rate:</b> {trainer.hourlyRate ?? '—'}</div>
+                <div><b>Urdu Name:</b> {trainer.urduName || '—'}</div>
+                <div><b>Courses Taught:</b> {(trainer.coursesTaught || []).join(', ') || '—'}</div>
+                <div className="tmg-details-address"><b>Bio:</b> {trainer.bio || '—'}</div>
+                <div><b>Facebook:</b> {trainer.socialLinks?.facebook || '—'}</div>
+                <div><b>LinkedIn:</b> {trainer.socialLinks?.linkedin || '—'}</div>
+                <div><b>YouTube:</b> {trainer.socialLinks?.youtube || '—'}</div>
+                <div><b>Twitter:</b> {trainer.socialLinks?.twitter || '—'}</div>
                 <div className="tmg-details-address"><b>Address:</b> {trainer.address}</div>
               </div>
             </div>

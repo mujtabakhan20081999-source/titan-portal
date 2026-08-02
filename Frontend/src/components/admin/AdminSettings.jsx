@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Settings2, Mail, MessageSquare, CreditCard, DatabaseBackup,
   ChevronRight, X, CheckCircle2,
 } from 'lucide-react';
+import { getSettings, updateSettings, triggerBackup } from '../../services/adminService';
 
 import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
@@ -17,7 +18,7 @@ const SECTIONS = [
 
 const DEFAULTS = {
   general: { systemName: 'TITAN SMS', timezone: 'Asia/Karachi', maintenance: false, registration: true },
-  email: { host: 'smtp.titan.com', port: '587', fromEmail: 'no-reply@titan.com', enabled: true },
+  email: { host: '', port: '587', fromEmail: '', enabled: false },
   sms: { provider: 'Twilio', senderId: 'TITAN', enabled: false },
   payment: { currency: 'PKR (Rs)', lateFee: '500', onlinePayments: true },
   backup: { frequency: 'Daily', retention: '30', autoBackup: true },
@@ -46,16 +47,56 @@ export default function AdminSettings() {
   const [data, setData] = useState(DEFAULTS);
   const [draft, setDraft] = useState(null);
   const [toast, setToast] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getSettings()
+      .then((doc) => {
+        setData({
+          general: { ...DEFAULTS.general, ...(doc.general || {}) },
+          email: { ...DEFAULTS.email, ...(doc.email || {}) },
+          sms: { ...DEFAULTS.sms, ...(doc.sms || {}) },
+          payment: { ...DEFAULTS.payment, ...(doc.payment || {}) },
+          backup: { ...DEFAULTS.backup, ...(doc.backup || {}) },
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const openSection = (key) => { setDraft({ ...data[key] }); setOpen(key); };
   const set = (field, value) => setDraft((d) => ({ ...d, [field]: value }));
 
-  const save = () => {
-    setData((d) => ({ ...d, [open]: draft }));
-    const title = SECTIONS.find((s) => s.key === open)?.title;
-    setOpen(null);
-    setToast(`${title} saved.`);
-    setTimeout(() => setToast(''), 2200);
+  const save = async () => {
+    setSaving(true);
+    try {
+      const updated = await updateSettings({ section: open, data: draft });
+      setData({
+        general: { ...DEFAULTS.general, ...(updated.general || {}) },
+        email: { ...DEFAULTS.email, ...(updated.email || {}) },
+        sms: { ...DEFAULTS.sms, ...(updated.sms || {}) },
+        payment: { ...DEFAULTS.payment, ...(updated.payment || {}) },
+        backup: { ...DEFAULTS.backup, ...(updated.backup || {}) },
+      });
+      setOpen(null);
+      setToast(`${SECTIONS.find((s) => s.key === open)?.title} saved.`);
+      setTimeout(() => setToast(''), 2200);
+    } catch (err) {
+      setToast(err?.response?.data?.message || 'Failed to save settings.');
+      setTimeout(() => setToast(''), 2200);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runBackup = async () => {
+    try {
+      await triggerBackup();
+      setToast('Backup recorded on server.');
+      setTimeout(() => setToast(''), 2200);
+    } catch {
+      setToast('Backup failed.');
+      setTimeout(() => setToast(''), 2200);
+    }
   };
 
   const renderFields = () => {
@@ -71,19 +112,19 @@ export default function AdminSettings() {
                 <option>Asia/Karachi</option><option>Asia/Dubai</option><option>UTC</option>
               </select>
             </div>
-            <Row label="Maintenance Mode"><Toggle checked={d.maintenance} onChange={(v) => set('maintenance', v)} /></Row>
-            <Row label="Open Registration"><Toggle checked={d.registration} onChange={(v) => set('registration', v)} /></Row>
+            <Row label="Maintenance Mode"><Toggle checked={!!d.maintenance} onChange={(v) => set('maintenance', v)} /></Row>
+            <Row label="Open Registration"><Toggle checked={!!d.registration} onChange={(v) => set('registration', v)} /></Row>
           </>
         );
       case 'email':
         return (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="ap-field"><label>SMTP Host</label><input value={d.host} onChange={(e) => set('host', e.target.value)} /></div>
-              <div className="ap-field"><label>Port</label><input value={d.port} onChange={(e) => set('port', e.target.value)} /></div>
+              <div className="ap-field"><label>SMTP Host</label><input value={d.host || ''} onChange={(e) => set('host', e.target.value)} /></div>
+              <div className="ap-field"><label>Port</label><input value={d.port || ''} onChange={(e) => set('port', e.target.value)} /></div>
             </div>
-            <div className="ap-field"><label>From Email</label><input value={d.fromEmail} onChange={(e) => set('fromEmail', e.target.value)} /></div>
-            <Row label="Enable Email Notifications"><Toggle checked={d.enabled} onChange={(v) => set('enabled', v)} /></Row>
+            <div className="ap-field"><label>From Email</label><input value={d.fromEmail || ''} onChange={(e) => set('fromEmail', e.target.value)} /></div>
+            <Row label="Enable Email Notifications"><Toggle checked={!!d.enabled} onChange={(v) => set('enabled', v)} /></Row>
           </>
         );
       case 'sms':
@@ -92,8 +133,8 @@ export default function AdminSettings() {
             <div className="ap-field"><label>SMS Provider</label>
               <select value={d.provider} onChange={(e) => set('provider', e.target.value)}><option>Twilio</option><option>Jazz</option><option>Telenor</option></select>
             </div>
-            <div className="ap-field"><label>Sender ID</label><input value={d.senderId} onChange={(e) => set('senderId', e.target.value)} /></div>
-            <Row label="Enable SMS Notifications"><Toggle checked={d.enabled} onChange={(v) => set('enabled', v)} /></Row>
+            <div className="ap-field"><label>Sender ID</label><input value={d.senderId || ''} onChange={(e) => set('senderId', e.target.value)} /></div>
+            <Row label="Enable SMS Notifications"><Toggle checked={!!d.enabled} onChange={(v) => set('enabled', v)} /></Row>
           </>
         );
       case 'payment':
@@ -103,7 +144,7 @@ export default function AdminSettings() {
               <select value={d.currency} onChange={(e) => set('currency', e.target.value)}><option>PKR (Rs)</option><option>USD ($)</option><option>AED</option></select>
             </div>
             <div className="ap-field"><label>Late Fee (per day)</label><input type="number" value={d.lateFee} onChange={(e) => set('lateFee', e.target.value)} /></div>
-            <Row label="Accept Online Payments"><Toggle checked={d.onlinePayments} onChange={(v) => set('onlinePayments', v)} /></Row>
+            <Row label="Accept Online Payments"><Toggle checked={!!d.onlinePayments} onChange={(v) => set('onlinePayments', v)} /></Row>
           </>
         );
       case 'backup':
@@ -113,7 +154,8 @@ export default function AdminSettings() {
               <select value={d.frequency} onChange={(e) => set('frequency', e.target.value)}><option>Daily</option><option>Weekly</option><option>Monthly</option></select>
             </div>
             <div className="ap-field"><label>Retention (days)</label><input type="number" value={d.retention} onChange={(e) => set('retention', e.target.value)} /></div>
-            <Row label="Automatic Backup"><Toggle checked={d.autoBackup} onChange={(v) => set('autoBackup', v)} /></Row>
+            <Row label="Automatic Backup"><Toggle checked={!!d.autoBackup} onChange={(v) => set('autoBackup', v)} /></Row>
+            <button type="button" className="btn-ghost" onClick={runBackup}>Run Backup Now</button>
           </>
         );
       default:
@@ -133,7 +175,7 @@ export default function AdminSettings() {
       <div className="acard">
         <div className="ap-list">
           {SECTIONS.map((s) => (
-            <button key={s.key} className="ap-item" style={{ cursor: 'pointer', textAlign: 'left', width: '100%', background: '#fbfcff' }} onClick={() => openSection(s.key)}>
+            <button key={s.key} type="button" className="ap-item" style={{ cursor: 'pointer', textAlign: 'left', width: '100%', background: '#fbfcff' }} onClick={() => openSection(s.key)}>
               <div className="ap-item-ic" style={{ background: s.bg }}><s.Icon size={20} color={s.color} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="ap-item-title">{s.title}</div>
@@ -150,12 +192,12 @@ export default function AdminSettings() {
           <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-head">
               <span className="ap-modal-title">{SECTIONS.find((s) => s.key === open)?.title}</span>
-              <button className="ap-modal-close" onClick={() => setOpen(null)}><X size={20} /></button>
+              <button type="button" className="ap-modal-close" onClick={() => setOpen(null)}><X size={20} /></button>
             </div>
             <div className="ap-modal-body">{renderFields()}</div>
             <div className="ap-modal-actions">
-              <button className="btn-ghost" onClick={() => setOpen(null)}>Cancel</button>
-              <button className="btn-primary" onClick={save}>Save Changes</button>
+              <button type="button" className="btn-ghost" onClick={() => setOpen(null)}>Cancel</button>
+              <button type="button" className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
             </div>
           </div>
         </div>
