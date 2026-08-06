@@ -9,7 +9,7 @@ import '../../styles/admin.css';
 import '../../styles/admin-pages.css';
 
 const COURSES = ['Artificial Intelligence', 'Web Development', 'Python Programming', 'Data Science', 'Cyber Security', 'UI/UX Design', 'Graphic Design'];
-const CAMPUSES = ['Sukkur Campus', 'Karachi Campus', 'Lahore Campus', 'Islamabad Campus', 'Multan Campus'];
+const CAMPUSES = ['Sukkur Campus', 'Karachi Campus'];
 const CITIES = CAMPUSES.map((c) => c.replace(' Campus', ''));
 const ADD_TRAINER_OPTION = '__add_new_trainer__';
 

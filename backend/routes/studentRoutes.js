@@ -4,12 +4,39 @@ const User = require('../models/User');
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Slot = require('../models/Slot');
+const Trainer = require('../models/Trainer');
 const { protect, authorize } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 const { studentCampusFilter } = require('../utils/campusScope');
 
 const router = express.Router();
 const adminRoles = authorize('superadmin', 'subadmin');
+
+const ALLOWED_CITIES = ['Sukkur', 'Karachi'];
+const ALLOWED_CAMPUSES = ALLOWED_CITIES.map((city) => `${city} Campus`);
+
+function normalizeCityCampus(city, campus) {
+  const rawCity = city ? String(city).trim() : '';
+  const rawCampus = campus ? String(campus).trim() : '';
+  let normalizedCity = rawCity.replace(/\s*Campus$/i, '').trim();
+  let normalizedCampus = rawCampus;
+
+  if (normalizedCity && !normalizedCampus) {
+    normalizedCampus = `${normalizedCity} Campus`;
+  }
+  if (!normalizedCity && normalizedCampus) {
+    normalizedCity = normalizedCampus.replace(/\s*Campus$/i, '').trim();
+  }
+
+  if (normalizedCity && !ALLOWED_CITIES.includes(normalizedCity)) {
+    return null;
+  }
+  if (normalizedCampus && !ALLOWED_CAMPUSES.includes(normalizedCampus)) {
+    return null;
+  }
+
+  return { city: normalizedCity, campus: normalizedCampus };
+}
 
 function dayRange(value) {
   if (!value) return null;
@@ -117,7 +144,7 @@ router.get('/', protect, adminRoles, requirePermission('Students', 'read'), asyn
 
 router.get('/export', protect, adminRoles, requirePermission('Students', 'export'), async (req, res, next) => {
   try {
-    const filter = buildStudentFilter(req.query);
+    const filter = studentCampusFilter(req, buildStudentFilter(req.query));
     const students = await Student.find(filter).sort({ createdAt: -1 }).lean();
     const header = [
       'Roll', 'Name', 'Father', 'CNIC', 'Phone', 'Email', 'City', 'Campus', 'Course', 'Batch', 'Slot',
@@ -151,7 +178,7 @@ router.get('/me', protect, async (req, res, next) => {
 
 router.get('/:id/details', protect, adminRoles, requirePermission('Students', 'read'), async (req, res, next) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
@@ -203,7 +230,7 @@ router.get('/:id/details', protect, adminRoles, requirePermission('Students', 'r
 
 router.get('/:id/audit-pdf', protect, adminRoles, requirePermission('Students', 'read'), async (req, res, next) => {
   try {
-    const student = await Student.findById(req.params.id).lean();
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id })).lean();
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
@@ -259,7 +286,7 @@ router.get('/:id/audit-pdf', protect, adminRoles, requirePermission('Students', 
 
 router.get('/:id', protect, adminRoles, requirePermission('Students', 'read'), async (req, res, next) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
@@ -271,7 +298,7 @@ router.get('/:id', protect, adminRoles, requirePermission('Students', 'read'), a
 
 router.get('/:id/vouchers', protect, adminRoles, requirePermission('Students', 'read'), async (req, res, next) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
@@ -285,7 +312,7 @@ router.get('/:id/vouchers', protect, adminRoles, requirePermission('Students', '
 router.post('/', protect, adminRoles, requirePermission('Students', 'write'), async (req, res, next) => {
   try {
     const body = { ...req.body };
-    const { email, name, city, cnic } = body;
+    const { email, name, cnic } = body;
     if (!name || !body.roll || !body.dateOfBirth) {
       return res.status(400).json({ success: false, message: 'name, roll number and date of birth are required' });
     }
@@ -293,6 +320,15 @@ router.post('/', protect, adminRoles, requirePermission('Students', 'write'), as
     const roll = String(body.roll).trim();
     const normalizedEmail = email ? String(email).trim().toLowerCase() : null;
     const normalizedCnic = cnic ? String(cnic).trim() : null;
+    const normalizedCity = body.city ? String(body.city).trim() : '';
+    const normalizedCampus = body.campus ? String(body.campus).trim() : '';
+
+    const normalized = normalizeCityCampus(normalizedCity, normalizedCampus);
+    if (!normalized) {
+      return res.status(400).json({ success: false, message: 'City must be Sukkur or Karachi and campus must match.' });
+    }
+    body.city = normalized.city;
+    body.campus = normalized.campus;
 
     if (normalizedCnic && !/^\d{5}-\d{7}-\d$/.test(normalizedCnic)) {
       return res.status(400).json({ success: false, message: 'CNIC must look like 45601-1234567-1' });
@@ -332,32 +368,28 @@ router.post('/', protect, adminRoles, requirePermission('Students', 'write'), as
       body.slotRef = slot._id;
       body.course = body.course || slot.course;
       body.campus = body.campus || slot.campus;
+      body.city = body.city || String(slot.campus || '').replace(/\s*Campus$/i, '').trim();
     }
 
-    const userPayload = { fullName: name, role: 'student', campus: body.campus || city || '' };
-    if (normalizedEmail) userPayload.email = normalizedEmail;
-    const user = await User.create(userPayload);
+    const user = await User.create({
+      fullName: body.name,
+      email: normalizedEmail,
+      password: require('crypto').randomBytes(24).toString('hex'),
+      role: 'student',
+      campus: body.campus || body.city || '',
+    });
 
     let student;
     try {
       student = await Student.create({
         ...body,
         roll,
-        name,
-        city: city || body.city || '',
         email: normalizedEmail,
         cnic: normalizedCnic,
-        status: body.status || 'Pending',
-        pay: 'Pending',
         user: user._id,
-        changeHistory: [{
-          field: 'status',
-          from: '',
-          to: body.status || 'Pending',
-          note: 'Student registered',
-          changedBy: req.user.id,
-          changedByName: req.user.email || 'admin',
-        }],
+        city: body.city || '',
+        campus: body.campus || '',
+        country: body.country || 'Pakistan',
       });
     } catch (error) {
       await User.findByIdAndDelete(user._id);
@@ -410,7 +442,7 @@ router.post('/', protect, adminRoles, requirePermission('Students', 'write'), as
 
 router.put('/:id', protect, adminRoles, requirePermission('Students', 'update'), async (req, res, next) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
@@ -420,6 +452,14 @@ router.put('/:id', protect, adminRoles, requirePermission('Students', 'update'),
     delete updateData.user;
 
     if (updateData.email) updateData.email = String(updateData.email).trim().toLowerCase();
+    const normalizedCity = updateData.city ? String(updateData.city).trim() : String(student.city).trim();
+    const normalizedCampus = updateData.campus ? String(updateData.campus).trim() : String(student.campus).trim();
+    const normalized = normalizeCityCampus(normalizedCity, normalizedCampus);
+    if (!normalized) {
+      return res.status(400).json({ success: false, message: 'City must be Sukkur or Karachi and campus must match.' });
+    }
+    updateData.city = normalized.city;
+    updateData.campus = normalized.campus;
     if (updateData.appPassword) {
       const linkedUser = await User.findById(student.user).select('+password');
       if (linkedUser) {
@@ -502,10 +542,11 @@ router.post('/:id/vouchers', protect, adminRoles, requirePermission('Students', 
 
 router.delete('/:id', protect, adminRoles, requirePermission('Students', 'update'), async (req, res, next) => {
   try {
-    const student = await Student.findByIdAndDelete(req.params.id);
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
     if (!student) {
       return res.status(404).json({ success: false, message: 'Student not found' });
     }
+    await Student.findByIdAndDelete(student._id);
     await Promise.all([
       User.findByIdAndDelete(student.user),
       Enrollment.deleteMany({ student: student._id }),

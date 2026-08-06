@@ -128,20 +128,13 @@ const stats = [
 
 // Per-city figures shown when a sub-admin opens a single city's panel.
 const CITY_DATA = {
-  Sukkur:    { students: 1345, enrolled: 842, courses: 18, campuses: 6, trainers: 38, slots: 24 },
-  Karachi:   { students: 986,  enrolled: 607, courses: 15, campuses: 5, trainers: 32, slots: 19 },
-  Lahore:    { students: 754,  enrolled: 480, courses: 14, campuses: 4, trainers: 26, slots: 15 },
-  Islamabad: { students: 632,  enrolled: 399, courses: 12, campuses: 3, trainers: 22, slots: 12 },
-  Multan:    { students: 521,  enrolled: 318, courses: 10, campuses: 2, trainers: 18, slots: 10 },
+  Sukkur:  { students: 1345, enrolled: 842, courses: 18, campuses: 6, trainers: 38, slots: 24 },
+  Karachi: { students: 986,  enrolled: 607, courses: 15, campuses: 5, trainers: 32, slots: 19 },
 };
 
 const campuses = [
   { label: 'Sukkur Campus', value: 1345, color: '#0A3D91' },
   { label: 'Karachi Campus', value: 986, color: '#1150c0' },
-  { label: 'Lahore Campus', value: 754, color: '#2563eb' },
-  { label: 'Islamabad Campus', value: 632, color: '#3b82f6' },
-  { label: 'Multan Campus', value: 521, color: '#60a5fa' },
-  { label: 'Other Campuses', value: 420, color: '#F3C623' },
 ];
 
 const courses = [

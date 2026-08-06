@@ -145,13 +145,13 @@ function AssignModal({ kind, onClose, onSave }) {
 }
 
 /* ── Main course detail view ────────────────────────────────────────────── */
-function TeacherCourseDetail({ course, onBack }) {
+function TeacherCourseDetail({ course, onBack, initialAssignments = [], initialQuizzes = [], onTasksChange }) {
   const code = course.code || 'MWAD';
   const [students, setStudents] = useState(() =>
-    (rosterByCode[code] || []).map((s) => ({ ...s }))
+    (course.students || rosterByCode[code] || []).map((s) => ({ ...s }))
   );
-  const [assignments, setAssignments] = useState([]);
-  const [quizzes, setQuizzes] = useState([]);
+  const [assignments, setAssignments] = useState(initialAssignments);
+  const [quizzes, setQuizzes] = useState(initialQuizzes);
   const [tab, setTab] = useState('Students');
   const [modal, setModal] = useState(null); // 'assignment' | 'quiz' | null
 
@@ -163,9 +163,13 @@ function TeacherCourseDetail({ course, onBack }) {
 
   const saveAssign = (data) => {
     if (modal === 'quiz') {
-      setQuizzes((q) => [{ id: Date.now(), title: data.title, date: data.date, duration: data.extra || '—' }, ...q]);
+      const nextQuizzes = [{ id: Date.now(), title: data.title, date: data.date, duration: data.extra || '—' }, ...quizzes];
+      setQuizzes(nextQuizzes);
+      onTasksChange?.({ assignments, quizzes: nextQuizzes });
     } else {
-      setAssignments((a) => [{ id: Date.now(), title: data.title, dueDate: data.date, marks: data.extra || '—' }, ...a]);
+      const nextAssignments = [{ id: Date.now(), title: data.title, dueDate: data.date, marks: data.extra || '—' }, ...assignments];
+      setAssignments(nextAssignments);
+      onTasksChange?.({ assignments: nextAssignments, quizzes });
     }
     setModal(null);
     setTab(modal === 'quiz' ? 'Quizzes' : 'Assignments');

@@ -4,9 +4,6 @@ export function getCampuses() {
   return [
     'Sukkur Campus',
     'Karachi Campus',
-    'Lahore Campus',
-    'Islamabad Campus',
-    'Multan Campus',
     'Other Campuses',
   ];
 }
@@ -18,6 +15,16 @@ export async function listTrainers(params = {}) {
 
 export async function getMyTrainerProfile() {
   const { data } = await api.get('/trainers/me');
+  return data.data;
+}
+
+export async function updateMyTrainerProfile(payload) {
+  const { data } = await api.put('/trainers/me', payload);
+  return data.data;
+}
+
+export async function getMyTrainerRoster() {
+  const { data } = await api.get('/trainers/me/roster');
   return data.data;
 }
 

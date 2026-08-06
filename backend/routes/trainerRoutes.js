@@ -1,10 +1,16 @@
 const express = require('express');
 const Trainer = require('../models/Trainer');
 const User = require('../models/User');
+const Slot = require('../models/Slot');
+const Student = require('../models/Student');
 const { protect, authorize } = require('../middleware/auth');
 const { applyCampusScope } = require('../utils/campusScope');
 
 const router = express.Router();
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 async function generateEmployeeId() {
   for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -34,6 +40,71 @@ router.get('/me', protect, authorize('teacher'), async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Trainer profile not found' });
     }
     res.json({ success: true, data: trainer });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/me', protect, authorize('teacher'), async (req, res, next) => {
+  try {
+    const trainer = await Trainer.findOne({ user: req.user.id });
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: 'Trainer profile not found' });
+    }
+
+    const updateData = { ...req.body };
+    if (updateData.email) {
+      updateData.email = String(updateData.email).trim().toLowerCase();
+    }
+    if (updateData.experience !== undefined) {
+      updateData.experience = Number(updateData.experience) || 0;
+    }
+    if (updateData.socialLinks && typeof updateData.socialLinks !== 'object') {
+      updateData.socialLinks = {};
+    }
+
+    await User.findByIdAndUpdate(trainer.user, {
+      fullName: updateData.fullName || trainer.fullName,
+      email: updateData.email || trainer.email,
+    });
+
+    const updatedTrainer = await Trainer.findByIdAndUpdate(trainer._id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.json({ success: true, data: updatedTrainer });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/me/roster', protect, authorize('teacher'), async (req, res, next) => {
+  try {
+    const trainer = await Trainer.findOne({ user: req.user.id });
+    if (!trainer) {
+      return res.status(404).json({ success: false, message: 'Trainer profile not found' });
+    }
+
+    const namePattern = new RegExp(`^${escapeRegex(trainer.fullName)}$`, 'i');
+    const slots = await Slot.find({
+      $or: [
+        { trainerId: trainer._id },
+        { trainer: namePattern },
+      ],
+    }).sort({ createdAt: -1 });
+
+    const slotIds = slots.map((slot) => slot.slotId).filter(Boolean);
+    const slotRefs = slots.map((slot) => slot._id);
+    const studentFilter = {
+      $or: [
+        { slot: { $in: slotIds } },
+        { slotRef: { $in: slotRefs } },
+      ],
+    };
+    const students = await Student.find(studentFilter).sort({ name: 1 });
+
+    res.json({ success: true, data: { trainer, slots, students } });
   } catch (error) {
     next(error);
   }

@@ -7,6 +7,7 @@ import {
 import TopBar from '../components/layout/TopBar';
 import { listStudents } from '../services/studentService';
 import { listAttendance, createAttendance } from '../services/attendanceService';
+import { getMyTrainerRoster } from '../services/trainerService';
 
 const TABS = [
   { key: 'Students',        icon: <Users size={15} /> },
@@ -90,11 +91,14 @@ function StudentsTab({ search, students }) {
 
 function AttendanceTab({ students, attendanceRecords, onRefresh }) {
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  const [marks, setMarks] = useState(() =>
-    Object.fromEntries(students.map((s) => [s._id || s.roll, 'Present']))
-  );
+  const [marks, setMarks] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setMarks(Object.fromEntries(students.map((s) => [s._id || s.roll, 'Present'])));
+    setSaved(false);
+  }, [students]);
 
   const setMark = (id, val) => { setMarks((m) => ({ ...m, [id]: val })); setSaved(false); };
 
@@ -277,21 +281,24 @@ function TeacherAttendance() {
   const [search, setSearch] = useState('');
   const [students, setStudents] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [trainerRoster, setTrainerRoster] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [studentsData, attendanceData] = await Promise.all([
-        listStudents(),
+      const [attendanceData, rosterData] = await Promise.all([
         listAttendance(),
+        getMyTrainerRoster().catch(() => null),
       ]);
-      setStudents(studentsData || []);
       setAttendanceRecords(attendanceData || []);
+      setTrainerRoster(rosterData || null);
+      setStudents(rosterData?.students || []);
     } catch (err) {
       console.error('Failed to load data:', err);
       setStudents([]);
       setAttendanceRecords([]);
+      setTrainerRoster(null);
     } finally {
       setLoading(false);
     }
@@ -305,6 +312,7 @@ function TeacherAttendance() {
   const avgAttendance = totalStudents > 0
     ? Math.round(attendanceRecords.filter((r) => r.status === 'Present').length / Math.max(1, attendanceRecords.length) * 100)
     : 0;
+  const assignmentCount = trainerRoster?.slots?.reduce((sum, slot) => sum + (Number(slot.filled) || 0), 0) || 0;
 
   const storedUser = (() => {
     try {
@@ -328,6 +336,7 @@ function TeacherAttendance() {
           {[
             { icon: <Users size={22} color="#2563eb" />, bg: '#dbeafe', value: totalStudents, label: 'Total Students', sub: 'Active Enrollments' },
             { icon: <Clock size={22} color="#0891b2" />, bg: '#cffafe', value: attendanceRecords.length, label: "Total Records", sub: 'Attendance Entries' },
+            { icon: <ClipboardList size={22} color="#9333ea" />, bg: '#ede9fe', value: assignmentCount, label: 'Assignments Count', sub: 'Based on roster' },
             { icon: <TrendingUp size={22} color="#059669" />, bg: '#d1fae5', value: `${avgAttendance}%`, label: 'Attendance Rate', sub: 'Present %' },
           ].map((s) => (
             <div key={s.label} className="card card-padding" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

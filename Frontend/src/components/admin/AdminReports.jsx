@@ -43,7 +43,7 @@ export default function AdminReports() {
 
   const campuses = useMemo(() => {
     const s = new Set(reports.map((r) => r.campus).filter(Boolean));
-    return ['All Campuses', 'Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan', ...Array.from(s)];
+    return ['All Campuses', 'Sukkur', 'Karachi', ...Array.from(s)];
   }, [reports]);
 
   const statuses = ['All Statuses', 'Ready', 'Processing'];

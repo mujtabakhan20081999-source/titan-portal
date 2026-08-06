@@ -11,6 +11,8 @@ const { requirePermission } = require('../middleware/permissions');
 const router = express.Router();
 
 const adminOnly = [protect, authorize('superadmin', 'subadmin')];
+const ALLOWED_CITY_NAMES = ['Sukkur', 'Karachi'];
+const ALLOWED_CAMPUS_NAMES = ALLOWED_CITY_NAMES.map((name) => `${name} Campus`);
 
 async function ensureSeedData() {
   let country = await Country.findOne({ name: 'Pakistan' });
@@ -18,7 +20,7 @@ async function ensureSeedData() {
     country = await Country.create({ name: 'Pakistan', code: 'PK' });
   }
 
-  const cityNames = ['Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan'];
+  const cityNames = ['Sukkur', 'Karachi'];
   const cities = {};
   for (const name of cityNames) {
     let city = await City.findOne({ name, country: country._id });
@@ -93,8 +95,8 @@ router.get('/hierarchy', protect, async (req, res, next) => {
   try {
     await ensureSeedData();
     const countries = await Country.find({ status: 'Active' }).sort({ name: 1 }).lean();
-    const cities = await City.find({ status: 'Active' }).populate('country', 'name').sort({ name: 1 }).lean();
-    const campuses = await Campus.find({ status: 'Active' }).populate('city', 'name').sort({ name: 1 }).lean();
+    const cities = await City.find({ status: 'Active', name: { $in: ALLOWED_CITY_NAMES } }).populate('country', 'name').sort({ name: 1 }).lean();
+    const campuses = await Campus.find({ status: 'Active', name: { $in: ALLOWED_CAMPUS_NAMES } }).populate('city', 'name').sort({ name: 1 }).lean();
     const courses = await Course.find({ status: 'Active' }).sort({ name: 1 }).lean();
     const batches = await Batch.find({ status: 'Active' })
       .populate('course', 'name')
@@ -125,7 +127,7 @@ router.get('/countries', protect, async (req, res, next) => {
 router.get('/cities', protect, async (req, res, next) => {
   try {
     await ensureSeedData();
-    const filter = {};
+    const filter = { name: { $in: ALLOWED_CITY_NAMES } };
     if (req.query.country) filter.country = req.query.country;
     const data = await City.find(filter).populate('country', 'name').sort({ name: 1 });
     res.json({ success: true, data });
@@ -137,7 +139,7 @@ router.get('/cities', protect, async (req, res, next) => {
 router.get('/campuses', protect, async (req, res, next) => {
   try {
     await ensureSeedData();
-    const filter = {};
+    const filter = { name: { $in: ALLOWED_CAMPUS_NAMES } };
     if (req.query.city) filter.city = req.query.city;
     const data = await Campus.find(filter).populate('city', 'name').sort({ name: 1 });
     res.json({ success: true, data });

@@ -8,11 +8,8 @@ import { getCityStats } from '../services/adminService';
 import '../styles/subadmin.css';
 
 const CITY_CARDS = [
-  { name: 'Sukkur',    campus: 'Sukkur Campus',    students: 0, trainers: 0, slots: 0, grad: ['#0A3D91', '#1150c0'] },
-  { name: 'Karachi',   campus: 'Karachi Campus',   students: 0, trainers: 0, slots: 0, grad: ['#1150c0', '#2563eb'] },
-  { name: 'Lahore',    campus: 'Lahore Campus',    students: 0, trainers: 0, slots: 0, grad: ['#2563eb', '#3b82f6'] },
-  { name: 'Islamabad', campus: 'Islamabad Campus', students: 0, trainers: 0, slots: 0, grad: ['#0891b2', '#22d3ee'] },
-  { name: 'Multan',    campus: 'Multan Campus',    students: 0, trainers: 0, slots: 0, grad: ['#b45309', '#F3C623'] },
+  { name: 'Sukkur',  campus: 'Sukkur Campus',  students: 0, trainers: 0, slots: 0, grad: ['#0A3D91', '#1150c0'] },
+  { name: 'Karachi', campus: 'Karachi Campus', students: 0, trainers: 0, slots: 0, grad: ['#1150c0', '#2563eb'] },
 ];
 
 function CitySkyline(props) {

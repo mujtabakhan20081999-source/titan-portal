@@ -49,6 +49,8 @@ const accentColors = [
   { color: '#0d9488', name: 'Teal' },
 ];
 
+const CITY_OPTIONS = ['Sukkur', 'Karachi'];
+
 const avatarColors = ['#1150c0','#7c3aed','#059669','#dc2626','#d97706','#0891b2','#db2777','#374151'];
 
 function Toggle({ checked, onChange }) {
@@ -188,7 +190,9 @@ function ProfileSection({ role, userName, userEmail }) {
           </div>
           <div className="settings-field">
             <label>City</label>
-            <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="City" />
+            <select value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}>
+              {CITY_OPTIONS.map((city) => <option key={city} value={city}>{city}</option>)}
+            </select>
           </div>
           <div className="settings-field">
             <label>Gender</label>

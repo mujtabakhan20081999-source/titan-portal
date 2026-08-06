@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 
 import titanLogo from '../../assets/TITAN LOGO without BG.png';
-import { CITY_STATS } from './subAdminData';
 
 import '../../styles/admin.css';
 import '../../styles/subadmin.css';
@@ -43,19 +42,22 @@ function Ring({ pct, color = '#0A3D91', track = '#eef2f9', size = 62, stroke = 8
 }
 
 function SubAdminDashboard({ city, students, slots, onGoto }) {
-  const cs = CITY_STATS[city] || {};
   const [controls, setControls] = useState({ registration: true, alerts: true, reminders: true, maintenance: false });
   const flip = (k) => setControls((p) => ({ ...p, [k]: !p[k] }));
 
-  const seatsFilled = Math.round((slots.reduce((a, s) => a + s.filled, 0) / Math.max(1, slots.reduce((a, s) => a + s.seats, 0))) * 100);
+  const totalStudents = students.length;
+  const enrolledCount = students.filter((s) => s.status === 'Enrolled').length;
+  const activeSlots = slots.filter((s) => s.status === 'Open' || s.open).length;
+  const amountCollected = students.filter((s) => s.pay === 'Paid').length * 2000;
+  const seatsFilled = Math.round((slots.reduce((a, s) => a + Number(s.filled || 0), 0) / Math.max(1, slots.reduce((a, s) => a + Number(s.seats || 0), 0))) * 100);
   const attendancePct = 87;
   const pendingCount = students.filter((s) => s.status === 'Pending').length;
 
   const reports = [
-    { icon: Users, bg: '#fff8e1', color: '#b45309', label: 'Total Students', pill: cs.students?.toLocaleString(), goto: 'Students' },
-    { icon: GraduationCap, bg: '#dcfce7', color: '#16a34a', label: 'Enrolled', value: cs.enrolled?.toLocaleString(), goto: 'Students' },
-    { icon: CalendarClock, bg: '#dbeafe', color: '#2563eb', label: 'Active Slots', value: cs.slots, goto: 'Slots' },
-    { icon: Wallet, bg: '#ede9fe', color: '#7c3aed', label: 'Fee Collected', value: `Rs ${Math.round((cs.students * 620) / 1000)}K`, goto: 'Students' },
+    { icon: Users, bg: '#fff8e1', color: '#b45309', label: 'Total Students', pill: totalStudents.toLocaleString(), goto: 'Students' },
+    { icon: GraduationCap, bg: '#dcfce7', color: '#16a34a', label: 'Enrolled', value: enrolledCount.toLocaleString(), goto: 'Students' },
+    { icon: CalendarClock, bg: '#dbeafe', color: '#2563eb', label: 'Active Slots', value: activeSlots, goto: 'Slots' },
+    { icon: Wallet, bg: '#ede9fe', color: '#7c3aed', label: 'Fee Collected', value: `Rs ${Math.round(amountCollected / 1000)}K`, goto: 'Students' },
   ];
 
   const toggles = [

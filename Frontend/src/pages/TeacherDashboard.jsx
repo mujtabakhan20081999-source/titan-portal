@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Users, ClipboardList, Calendar, Clock, User, CalendarDays, ChevronRight } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import TeacherCourseDetail from '../components/dashboard/TeacherCourseDetail';
 import { listMySlots } from '../services/slotService';
+import { getMyTrainerRoster } from '../services/trainerService';
 
 const CARD_THEMES = [
   { bg: '#e8f5e9', border: '#a5d6a7', titleColor: '#1b5e20' },
@@ -189,6 +190,10 @@ function TeacherDashboard() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
   const [trainer, setTrainer] = useState(null);
+  const [roster, setRoster] = useState(null);
+  const [taskCounts, setTaskCounts] = useState({ assignments: 0, quizzes: 0 });
+  const [assignments, setAssignments] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -202,18 +207,29 @@ function TeacherDashboard() {
 
   useEffect(() => {
     let mounted = true;
+    const savedAssignments = JSON.parse(localStorage.getItem('trainer-assignments') || '[]');
+    const savedQuizzes = JSON.parse(localStorage.getItem('trainer-quizzes') || '[]');
+    setAssignments(savedAssignments);
+    setQuizzes(savedQuizzes);
+    setTaskCounts({ assignments: savedAssignments.length, quizzes: savedQuizzes.length });
+
     (async () => {
       setLoading(true);
       setError('');
       try {
-        const result = await listMySlots();
+        const [slotsResult, rosterResult] = await Promise.all([
+          listMySlots(),
+          getMyTrainerRoster().catch(() => null),
+        ]);
         if (!mounted) return;
-        setTrainer(result.trainer || null);
-        setCourses((result.data || []).map(mapSlotToCourse));
+        setTrainer(slotsResult.trainer || null);
+        setCourses((slotsResult.data || []).map(mapSlotToCourse));
+        setRoster(rosterResult || null);
       } catch (err) {
         if (!mounted) return;
         setError(err?.response?.data?.message || 'Unable to load your assigned slots.');
         setCourses([]);
+        setRoster(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -223,12 +239,23 @@ function TeacherDashboard() {
 
   const openCourse = (course) => {
     const code = course.name.toLowerCase().includes('modern web') ? 'MWAD' : 'LGAL';
-    setSelectedCourse({ ...course, code });
+    const students = studentsBySlot[course.slotId] || [];
+    setSelectedCourse({ ...course, code, students });
   };
 
   const displayName = trainer?.fullName || storedUser.fullName || 'Trainer';
   const weekDays = buildWeekDays(courses);
   const totalStudents = courses.reduce((sum, course) => sum + (Number(course.enrolled) || 0), 0);
+  const studentsBySlot = useMemo(() => {
+    const map = {};
+    (roster?.students || []).forEach((student) => {
+      const key = student.slot || (student.slotRef ? String(student.slotRef) : '');
+      if (!key) return;
+      map[key] = map[key] || [];
+      map[key].push(student);
+    });
+    return map;
+  }, [roster]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -241,7 +268,21 @@ function TeacherDashboard() {
 
       {selectedCourse ? (
         <div className="page-body" style={{ gap: 24 }}>
-          <TeacherCourseDetail course={selectedCourse} onBack={() => setSelectedCourse(null)} />
+          <TeacherCourseDetail
+            course={selectedCourse}
+            onBack={() => setSelectedCourse(null)}
+            initialAssignments={assignments}
+            initialQuizzes={quizzes}
+            onTasksChange={({ assignments: nextAssignments, quizzes: nextQuizzes }) => {
+              const assignmentList = nextAssignments || assignments;
+              const quizList = nextQuizzes || quizzes;
+              localStorage.setItem('trainer-assignments', JSON.stringify(assignmentList));
+              localStorage.setItem('trainer-quizzes', JSON.stringify(quizList));
+              setAssignments(assignmentList);
+              setQuizzes(quizList);
+              setTaskCounts({ assignments: assignmentList.length, quizzes: quizList.length });
+            }}
+          />
         </div>
       ) : (
       <div className="page-body" style={{ gap: 24 }}>
@@ -250,7 +291,7 @@ function TeacherDashboard() {
           <div className="td-statbox-row" style={{ display: 'flex', flex: 3, gap: 20 }}>
             <StatBox icon={BookOpen}      value={loading ? '—' : courses.length} label="Assigned Slots"     iconBg="#dcfce7" iconColor="#16a34a" />
             <StatBox icon={Users}         value={loading ? '—' : totalStudents} label="Enrolled Students"  iconBg="#dbeafe" iconColor="#2563eb" />
-            <StatBox icon={ClipboardList} value={0}   label="Total Assignments"  iconBg="#f3e8ff" iconColor="#9333ea" />
+            <StatBox icon={ClipboardList} value={taskCounts.assignments}   label="Total Assignments"  iconBg="#f3e8ff" iconColor="#9333ea" />
           </div>
 
           <div className="card card-padding" style={{ flex: 1.1, minWidth: 210 }}>

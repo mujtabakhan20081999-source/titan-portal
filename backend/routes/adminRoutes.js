@@ -21,7 +21,7 @@ const { studentCampusFilter } = require('../utils/campusScope');
 
 const router = express.Router();
 
-const CITY_LIST = ['Sukkur', 'Karachi', 'Lahore', 'Islamabad', 'Multan'];
+const CITY_LIST = ['Sukkur', 'Karachi'];
 const CITY_REGEX = (city) => new RegExp(`^${city}( Campus)?$`, 'i');
 
 async function getOrCreateSettings() {

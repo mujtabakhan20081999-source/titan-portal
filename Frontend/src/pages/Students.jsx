@@ -17,6 +17,8 @@ import { getHierarchy } from '../services/masterService';
 import '../styles/admin.css';
 
 const AV_COLORS = ['#2563eb', '#db2777', '#16a34a', '#d97706', '#7c3aed', '#0891b2', '#dc2626', '#0A3D91'];
+const CITY_OPTIONS = ['Sukkur', 'Karachi'];
+const CAMPUS_OPTIONS = CITY_OPTIONS.map((c) => `${c} Campus`);
 const GRID = '88px minmax(140px,1.5fr) minmax(120px,1.1fr) minmax(100px,1fr) minmax(120px,1.2fr) minmax(110px,0.9fr) 95px 110px 176px';
 const payBadge = { Paid: 'badge-green', Pending: 'badge-amber', 'Not Generated': 'badge-grey' };
 const statusBadge = {
@@ -381,8 +383,8 @@ function Students() {
               <div className="tmg-form-grid">
                 {[
                   ['country', 'Country', hierarchy.countries.map((c) => c.name)],
-                  ['city', 'City', cities.map((c) => c.name)],
-                  ['campus', 'Campus', campuses.map((c) => c.name)],
+                  ['city', 'City', CITY_OPTIONS],
+                  ['campus', 'Campus', CAMPUS_OPTIONS],
                   ['course', 'Course', hierarchy.courses.map((c) => c.name)],
                   ['batch', 'Batch', batches.map((b) => b.name)],
                   ['slot', 'Slot', slots.map((s) => s.slotId)],

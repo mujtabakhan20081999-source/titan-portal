@@ -18,7 +18,7 @@ const COURSES = [
 const SCHEDULE = [
   { time: '10:00 AM - 12:00 PM', title: 'Artificial Intelligence', meta: 'AI - Batch 01 · Sukkur Campus', color: '#2563eb' },
   { time: '02:00 PM - 04:00 PM', title: 'Data Science', meta: 'Data Science - Batch 03 · Online', color: '#7c3aed' },
-  { time: '05:00 PM - 07:00 PM', title: 'Python Programming', meta: 'PY - Batch 02 · Lahore Campus', color: '#16a34a' },
+  { time: '05:00 PM - 07:00 PM', title: 'Python Programming', meta: 'PY - Batch 02 · Karachi Campus', color: '#16a34a' },
 ];
 
 export default function AdminTrainerPortal() {
