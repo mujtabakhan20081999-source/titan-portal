@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Search, Plus, Download, Eye, Pencil, Filter, FileText, CreditCard, Trash2,
+  Search, Plus, Download, Eye, Pencil, Filter, FileText, CreditCard, Trash2, BookOpen,
 } from 'lucide-react';
 import {
   listStudentsPaged,
@@ -13,6 +13,7 @@ import {
   downloadStudentsExport,
   downloadStudentAudit,
 } from '../services/studentService';
+import CourseEnrollmentManager from '../components/admin/CourseEnrollmentManager';
 import { getHierarchy } from '../services/masterService';
 import '../styles/admin.css';
 
@@ -73,6 +74,8 @@ function Students() {
   const [paymentsOpen, setPaymentsOpen] = useState(false);
   const [payments, setPayments] = useState([]);
   const [paymentsStudent, setPaymentsStudent] = useState(null);
+  const [enrollmentsOpen, setEnrollmentsOpen] = useState(false);
+  const [enrollmentsStudent, setEnrollmentsStudent] = useState(null);
   const [actionLoading, setActionLoading] = useState('');
 
   const fetchStudents = useCallback(async () => {
@@ -202,6 +205,11 @@ function Students() {
     } finally {
       setActionLoading('');
     }
+  };
+
+  const openEnrollments = (student) => {
+    setEnrollmentsStudent(student);
+    setEnrollmentsOpen(true);
   };
 
   const openPayments = async (student) => {
@@ -349,6 +357,9 @@ function Students() {
               </button>
               <button type="button" title="Edit student" disabled={!!actionLoading} onClick={() => openEdit(s)}>
                 <Pencil size={15} />
+              </button>
+              <button type="button" title="Manage courses" disabled={!!actionLoading} onClick={() => openEnrollments(s)}>
+                <BookOpen size={15} />
               </button>
               <button type="button" title="Payments / vouchers" disabled={!!actionLoading} onClick={() => openPayments(s)}>
                 <CreditCard size={15} />
@@ -535,6 +546,18 @@ function Students() {
             </div>
           </div>
         </div>
+      )}
+
+      {enrollmentsOpen && enrollmentsStudent && (
+        <CourseEnrollmentManager
+          student={enrollmentsStudent}
+          hierarchy={hierarchy}
+          onClose={() => {
+            setEnrollmentsOpen(false);
+            setEnrollmentsStudent(null);
+            fetchStudents();
+          }}
+        />
       )}
 
       {paymentsOpen && (

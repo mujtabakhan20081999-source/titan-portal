@@ -557,4 +557,162 @@ router.delete('/:id', protect, adminRoles, requirePermission('Students', 'update
   }
 });
 
+// Get all enrollments for a student
+router.get('/:id/enrollments', protect, adminRoles, requirePermission('Students', 'read'), async (req, res, next) => {
+  try {
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const enrollments = await Enrollment.find({ student: student._id })
+      .populate('courseRef')
+      .populate('batch')
+      .populate('slot')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: enrollments });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add a course enrollment for a student
+router.post('/:id/enrollments', protect, adminRoles, requirePermission('Students', 'write'), async (req, res, next) => {
+  try {
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const { course, courseRef, slot, slotRef, batch, batchName, campus, campusRef, status } = req.body;
+
+    if (!course) {
+      return res.status(400).json({ success: false, message: 'Course is required' });
+    }
+
+    // Check if student already enrolled in this course
+    const existing = await Enrollment.findOne({
+      student: student._id,
+      course: course,
+      status: { $ne: 'Dropout' }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, message: 'Student is already enrolled in this course' });
+    }
+
+    const enrollment = await Enrollment.create({
+      student: student._id,
+      course: course,
+      courseRef: courseRef || undefined,
+      slot: slotRef || undefined,
+      slotId: slot || '',
+      batch: batch || undefined,
+      batchName: batchName || '',
+      campus: campus || student.campus || '',
+      campusRef: campusRef || undefined,
+      roll: student.roll,
+      status: status || 'Pending',
+      schedule: '',
+      history: [{
+        status: status || 'Pending',
+        note: 'Enrollment added by admin',
+        changedBy: req.user.id,
+        changedByName: req.user.email || 'admin',
+        changedAt: new Date(),
+      }],
+    });
+
+    const populated = await Enrollment.findById(enrollment._id)
+      .populate('courseRef')
+      .populate('batch')
+      .populate('slot');
+
+    res.status(201).json({ success: true, data: populated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update an enrollment
+router.put('/:id/enrollments/:enrollmentId', protect, adminRoles, requirePermission('Students', 'update'), async (req, res, next) => {
+  try {
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const enrollment = await Enrollment.findOne({ _id: req.params.enrollmentId, student: student._id });
+    if (!enrollment) {
+      return res.status(404).json({ success: false, message: 'Enrollment not found' });
+    }
+
+    const { status, batch, batchName, campus, campusRef, slot, slotRef } = req.body;
+
+    if (status && status !== enrollment.status) {
+      enrollment.history = enrollment.history || [];
+      enrollment.history.unshift({
+        status: status,
+        note: req.body.note || 'Status updated by admin',
+        changedBy: req.user.id,
+        changedByName: req.user.email || 'admin',
+        changedAt: new Date(),
+      });
+      enrollment.status = status;
+    }
+
+    if (batch) enrollment.batch = batch;
+    if (batchName) enrollment.batchName = batchName;
+    if (campus) enrollment.campus = campus;
+    if (campusRef) enrollment.campusRef = campusRef;
+    if (slot) enrollment.slotId = slot;
+    if (slotRef) enrollment.slot = slotRef;
+
+    await enrollment.save();
+
+    const populated = await Enrollment.findById(enrollment._id)
+      .populate('courseRef')
+      .populate('batch')
+      .populate('slot');
+
+    res.json({ success: true, data: populated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete an enrollment
+router.delete('/:id/enrollments/:enrollmentId', protect, adminRoles, requirePermission('Students', 'update'), async (req, res, next) => {
+  try {
+    const student = await Student.findOne(studentCampusFilter(req, { _id: req.params.id }));
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
+
+    const enrollment = await Enrollment.findOne({ _id: req.params.enrollmentId, student: student._id });
+    if (!enrollment) {
+      return res.status(404).json({ success: false, message: 'Enrollment not found' });
+    }
+
+    // If slot exists, decrease filled count
+    if (enrollment.slot) {
+      const slot = await Slot.findById(enrollment.slot);
+      if (slot && slot.filled > 0) {
+        slot.filled = Number(slot.filled) - 1;
+        if (slot.status === 'Closed' && slot.filled < slot.seats) {
+          slot.status = 'Open';
+        }
+        await slot.save();
+      }
+    }
+
+    await Enrollment.findByIdAndDelete(enrollment._id);
+
+    res.json({ success: true, message: 'Enrollment deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

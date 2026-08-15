@@ -5,6 +5,7 @@ const Student = require('../models/Student');
 const Trainer = require('../models/Trainer');
 const { protect } = require('../middleware/auth');
 const { getPermissionsForRole, LABEL_TO_MODULE, hasPermission } = require('../middleware/permissions');
+const { sendLoginEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -226,6 +227,11 @@ router.post('/login', async (req, res, next) => {
     const token = signToken(user);
     const payload = await userPayload(user);
 
+    // Send login email asynchronously (don't wait for it to complete)
+    sendLoginEmail(user.email, user.fullName, user.role).catch(err => {
+      console.warn('Failed to send login email:', err.message);
+    });
+
     res.json({ success: true, token, user: payload });
   } catch (error) {
     next(error);
@@ -272,6 +278,49 @@ router.post('/change-password', protect, async (req, res, next) => {
     user.password = newPassword;
     await user.save();
     res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Test email endpoint - for admin to test email configuration
+router.post('/test-email', protect, async (req, res, next) => {
+  try {
+    // Only allow admins to test email
+    if (!['superadmin', 'subadmin'].includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Only administrators can test email configuration' 
+      });
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    const result = await sendLoginEmail(
+      email,
+      'Test User',
+      'student'
+    );
+
+    if (result.success) {
+      res.json({ 
+        success: true, 
+        message: 'Test email sent successfully',
+        messageId: result.messageId 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to send test email',
+        error: result.error 
+      });
+    }
   } catch (error) {
     next(error);
   }

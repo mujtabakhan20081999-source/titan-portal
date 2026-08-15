@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { testEmailConfiguration } = require('./utils/emailService');
 
 const authRoutes = require('./routes/authRoutes');
 const trainerRoutes = require('./routes/trainerRoutes');
@@ -18,6 +19,15 @@ const app = express();
 
 // Connect to MongoDB
 connectDB();
+
+// Test email configuration
+testEmailConfiguration().then(result => {
+  if (result.success) {
+    console.log('📧 ' + result.message);
+  } else {
+    console.warn('⚠️ Email configuration warning:', result.error);
+  }
+});
 
 // Core middleware
 app.use(cors());
